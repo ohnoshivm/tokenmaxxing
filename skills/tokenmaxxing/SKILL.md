@@ -1,6 +1,6 @@
 ---
 name: tokenmaxxing
-description: Plan and execute software work using token-efficient context retrieval, bounded agent loops, complete requirements and verified outcomes; invoke for coding, debugging, repository analysis, handoffs and optimizer evaluation, and usage-reset scheduling.
+description: Plan and execute software work using token-efficient context retrieval, bounded agent loops, complete requirements and verified outcomes; invoke for coding, debugging, repository analysis, handoffs and optimizer evaluation.
 ---
 # TOKENMAXXING — Quality-adjusted execution
 
@@ -13,7 +13,16 @@ description: Plan and execute software work using token-efficient context retrie
 7. **Cache and handoff thoughtfully.** Prefer stable instructions and concise checkpoints over repeated re-exploration. Only compact at meaningful boundaries, preserving open issues and approved decisions.
 8. **Verify every completion.** Run relevant tests and record real results. Report what changed, what passed, what was not checked and what remains unresolved.
 9. **Measure end-to-end.** Record pass/fail, actual fresh/cache/output tokens where available, time, retries and cost. Output shortening alone is not proven task savings.
-10. **Reset-window scheduling.** When the task concerns provider quotas, distinguish first-request-anchored windows from fixed weekly windows. Use the notification-first reset watcher under `scripts/reset_watcher.py`; do not auto-ping unknown/fixed pools. Opt-in to a minimal provider CLI call only after verifying the reset time, correct subscription account, low-cost model and user approval. See `policy/reset-activation.md`.
-11. **No silent installation.** Never change auth, billing/provider routes, MCP/hook settings or T3 configuration. Ask before enabling a third-party optimizer that executes hooks or installs globally.
+10. **No silent installation.** Never change auth, billing/provider routes, MCP/hook settings or T3 configuration. Ask before enabling a third-party optimizer that executes hooks or installs globally.
 
 Read `profiles/` and `policy/optimizer-registry.json` for tools and profiles. CLAUDE Code plugin commands are not guaranteed to work in T3 Chat.
+
+
+## Integrated reset-window feature
+
+When the user requests account-level quota reset optimisation, prefer the integrated
+`python3 tokenmaxxing.py reset` CLI (`setup`, `status`, `check --dry-run`, `watch`,
+`ack`, `install-macos`). Refer to `docs/reset-activation.md` and
+`policy/reset-activation.md`. The system is notification-only by default; never
+invent provider reset timestamps, send subscription API calls, auto-ping fixed
+weekly windows, or alter auth/routing without verified semantics and explicit opt-in.

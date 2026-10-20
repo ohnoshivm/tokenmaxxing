@@ -2,6 +2,14 @@
 
 **Created by [Shivam Kumawat](https://github.com/ohnoshivm) (@ohnoshivm) · AgentKind Labs**
 
+## 1.4 — 2026-10-21
+
+- Integrated Reset Activation Engine directly into `tokenmaxxing.py reset` (setup/status/check/watch/ack/install-macos).
+- Added opt-in `./install.sh --with-reset-config` to create a private, notification-only configuration safely.
+- Added integrated CLI usage to the README, skill, quick-start, installation guide and reset guide.
+- Added 7 CLI integration tests; 23 total local unit tests passed.
+- No provider authentication, T3 configuration or paid API routing was modified. No background scheduler was installed on the user's machine.
+
 ## 1.3 — 2026-10-21
 
 - Added **Reset Activation Engine** as the third primary TOKENMAXXING pillar.

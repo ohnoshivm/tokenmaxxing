@@ -7,6 +7,9 @@ This file describes **policy**, not automatic model switching. Use only models, 
 
 ## Usage-reset activation (third primary pillar)
 
+This feature is accessible through `python3 tokenmaxxing.py reset {setup,status,check,watch,ack,install-macos}`, with `check --dry-run` recommended before any scheduled monitoring. The normal installer can create an **inactive** config with `--with-reset-config`. Do not silently dispatch provider requests or claim T3 native integration.
+
+
 A reset is **not universally a signal to send a message**. For provider windows confirmed as *first-request-anchored*, users may opt into one tiny post-reset request on the cheapest available subscription-backed model, timed to the recorded reset. **Fixed weekly pools require no ping**; for unknown reset semantics notify instead. T3 Chat does not expose a verified native auto-message integration in this project.
 
 See [docs/reset-activation.md](docs/reset-activation.md), [policy/reset-activation.md](policy/reset-activation.md) and [prompts/reset-activation-master-prompt.md](prompts/reset-activation-master-prompt.md). The watcher defaults to notifications; sending provider CLI requests requires explicit opt-in and tested correct-account routing. Do not change credentials, OAuth, subscription paths or paid API routing. Never claim a quota timer was restarted from a successful process exit alone.

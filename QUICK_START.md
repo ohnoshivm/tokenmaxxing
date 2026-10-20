@@ -4,9 +4,19 @@
 
 **This repository is an operating protocol, not installed software.** It does not contain a live auto-router or an official T3 configuration file.
 
-## Reset-window activation
+## Reset-window activation — integrated feature
 
-The optional [Reset Activation Engine](docs/reset-activation.md) monitors session and weekly reset times by provider/account. **Copy and edit the example reset timestamps first; no auto-messages are enabled by default.** Run `python3 scripts/reset_watcher.py watch` for notifications, or `./scripts/install-reset-watcher-macos.sh` on macOS for a once-per-minute LaunchAgent. Automatic provider prompts require separate explicit authorization and account verification.
+```bash
+python3 tokenmaxxing.py reset setup
+# Edit the generated private config with your real provider/account reset times.
+python3 tokenmaxxing.py reset status
+python3 tokenmaxxing.py reset check --dry-run
+python3 tokenmaxxing.py reset check
+# Optional on macOS: python3 tokenmaxxing.py reset install-macos
+```
+
+The main installer also supports `./install.sh --with-reset-config` to create the **inactive** example configuration. The default watcher only notifies; a paid or subscription-backed request cannot be assumed safe or automated without verifying the actual provider/window. See [the reset guide](docs/reset-activation.md).
+
 
 ## One-command TOKENMAXXING install
 

@@ -2,6 +2,10 @@
 
 **Shivam Kumawat (@ohnoshivm) · AgentKind Labs**
 
+## Built-in operator interface
+
+Use `python3 tokenmaxxing.py reset setup` to create an inactive private configuration; `reset status`, `reset check --dry-run`, `reset check`, `reset watch`, `reset ack`, and `reset install-macos` expose the feature without separate installer scripts. Only eligible accounts with intentionally configured `dispatch: command` and the explicit `--allow-dispatch` flag may send a CLI request; the installed macOS scheduler remains notification-only.
+
 ## Policy objective
 
 Avoid unnecessarily delayed use of **activity-anchored** provider allowances while spending as little quota as practical. This is distinct from ordinary token-compression and model-routing policies. Activation consumes some allowance and is not automatically beneficial for every user or every quota window.

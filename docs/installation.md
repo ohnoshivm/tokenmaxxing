@@ -1,8 +1,22 @@
 # Installation and verification
 
-## Optional Reset Activation Engine
+## First-class Reset Activation Engine (opt-in)
 
-The core `./install.sh` remains non-invasive; it does **not** start or send requests through provider accounts. To configure reset monitoring, follow [Reset Activation Engine instructions](reset-activation.md). A macOS per-user LaunchAgent can check confirmed reset timestamps every minute and notify. Never enable CLI dispatch without verifying the provider, subscription account, model and first-message reset behaviour.
+TOKENMAXXING includes the reset window watcher in its main CLI. After cloning:
+
+```bash
+python3 tokenmaxxing.py reset setup
+# Enter actual account-specific timestamps in ~/.config/tokenmaxxing/reset-watcher.json
+python3 tokenmaxxing.py reset status
+python3 tokenmaxxing.py reset check --dry-run
+python3 tokenmaxxing.py reset check
+python3 tokenmaxxing.py reset install-macos    # optional, macOS notification-only
+```
+
+For a combined install run `./install.sh --with-reset-config`: this creates an **inactive** private config and stages the toolkit but does not start a background process or send a request. For a faster offline feature-only setup, run `./install.sh --no-fetch --with-reset-config`.
+
+For first-request-anchored windows, optional provider CLI dispatch requires a reviewed, verified command in the config plus explicit `--allow-dispatch`; the macOS LaunchAgent remains notification-only. See [Reset Activation Engine](reset-activation.md).
+
 
 ## Quick install
 

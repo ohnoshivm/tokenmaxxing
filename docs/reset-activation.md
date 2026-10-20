@@ -4,6 +4,32 @@
 
 This optional module watches known subscription allowance reset times and helps you begin a **new activity-anchored window** promptly with the cheapest supported subscription-backed model. Its default action is a macOS notification, **not a model call**.
 
+## Integrated TOKENMAXXING CLI (recommended)
+
+Reset activation is a **first-class optional TOKENMAXXING feature**. The CLI
+wraps the same audited watcher; no provider requests or daemons start by default.
+
+```bash
+# From the checked-out TOKENMAXXING repository:
+python3 tokenmaxxing.py reset setup               # Create private example configuration, no overwrite
+# Edit ~/.config/tokenmaxxing/reset-watcher.json with real provider/account windows.
+python3 tokenmaxxing.py reset status              # Show known windows
+python3 tokenmaxxing.py reset check --dry-run    # Preview eligibility without marking windows consumed
+python3 tokenmaxxing.py reset check              # Notification-first one-time check
+python3 tokenmaxxing.py reset watch              # Poll while this foreground process runs (>=60s)
+python3 tokenmaxxing.py reset install-macos      # Optional 60s notification-only LaunchAgent
+# After sending the real first request yourself:
+python3 tokenmaxxing.py reset ack --account codex-main-session
+```
+
+During the normal toolkit install, `./install.sh --with-reset-config` will also
+create the **inactive** example config without registering background services.
+It deliberately does **not** read T3 quota timestamps automatically, send `yo`,
+install a CLI provider, or alter existing authentication. Automatic model calls
+are only possible after configuring a verified account-specific command **and**
+passing `--allow-dispatch` to a manually run watcher/check; the bundled macOS
+LaunchAgent never uses that flag. See the security requirements below.
+
 ## Why not ping every reset?
 
 Providers use different clocks. A fixed weekly reset does not need any activation, and a gratuitous message will simply consume allowance. Only an **activity-anchored** window can benefit from a timely first request, and even then a premature request may start its usable window earlier than you need. A message containing `yo` can still incur agent startup, system prompt, tooling and cache overhead: prefer a fresh, lightweight conversation with no unnecessary tools.

@@ -6,7 +6,7 @@
 
 **Public research paper + implementation reference**  
 **Created by [Shivam Kumawat](https://github.com/ohnoshivm) (@ohnoshivm) · AgentKind Labs**    
-**Version:** 1.3  
+**Version:** 1.4  
 **Research date:** 21 October 2026  
 **Evidence priority:** [Artificial Analysis](https://artificialanalysis.ai/) → provider documentation → T3 documentation → project-specific controlled experiments  
 **Status:** Proposed operating policy and portable implementation kit; **not** a claim that the author's applications have already been configured.  
@@ -53,6 +53,21 @@ TOKENMAXXING treats **model delegation** and **execution-level token efficiency*
 
 
 ## Third primary pillar — Provider Reset Activation Engine
+
+**Reset activation is a built-in TOKENMAXXING CLI feature, not a separately installed third-party tool.** After cloning:
+
+```bash
+python3 tokenmaxxing.py reset setup               # Create private, inactive config
+# Fill in real, timezone-aware provider reset timestamps.
+python3 tokenmaxxing.py reset status              # Inspect windows
+python3 tokenmaxxing.py reset check --dry-run    # Preview safely
+python3 tokenmaxxing.py reset check              # Check and notify
+python3 tokenmaxxing.py reset install-macos      # Optional 60-second notification-only scheduler
+```
+
+Alternatively, `./install.sh --with-reset-config` prepares the inactive reset configuration during ordinary toolkit installation. Read [setup and safe activation rules](docs/reset-activation.md) before configuring any automatic provider request. **No API or subscription message is sent by default.**
+
+
 
 TOKENMAXXING now includes a **provider-aware reset activation system** for session, weekly and model-specific allowance pools. It watches user-confirmed reset timestamps with minute-level local checks, avoids duplicate actions and optionally sends a tiny prompt with the cheapest eligible subscription-backed model. **Sending messages is OFF by default.**
 
