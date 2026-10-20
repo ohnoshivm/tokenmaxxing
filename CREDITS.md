@@ -37,3 +37,7 @@ The framework discusses models, benchmarks, providers, open-source tooling and d
 ## Licence
 
 A licence has not yet been selected. Request permission before assuming reuse rights, and add the desired `LICENSE` file before encouraging broad code reuse or derivative work.
+
+## Additional token-efficiency research
+
+The [Claude Code Token-Maxxing: 2026 Research Report](research/claude-code-token-maxxing-2026.md) was supplied for inclusion and curated into TOKENMAXXING by **Shivam Kumawat (@ohnoshivm) · AgentKind Labs**. All original third-party projects, measurements, documentation and experiments are attributed through links in the report. Inclusion does not imply independent replication or endorsement of every reported result.

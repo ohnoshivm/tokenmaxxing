@@ -1,18 +1,33 @@
 # TOKENMAXXING
 
-**The Premium Model Delegation System** — quality-first, token-efficient multi-model AI execution.
+**The Premium Model Delegation & Token-Efficiency System** — quality-first, token-efficient multi-model AI execution.
 
 ### A research-backed architecture for multi-model intelligence, software execution, agent handoffs, and token-efficient delivery
 
 **Public research paper + implementation reference**  
 **Created by [Shivam Kumawat](https://github.com/ohnoshivm) (@ohnoshivm) · AgentKind Labs**    
-**Version:** 1.0  
+**Version:** 1.1  
 **Research date:** 21 October 2026  
 **Evidence priority:** [Artificial Analysis](https://artificialanalysis.ai/) → provider documentation → T3 documentation → project-specific controlled experiments  
 **Status:** Proposed operating policy and portable implementation kit; **not** a claim that the author's applications have already been configured.  
 **Platform:** Designed for a unified T3-based workflow, with portable instructions usable elsewhere.
 
 > **Thesis:** The most useful multi-model system does not maximize the number of models, agents, or thinking tokens. It maximizes *verified outcome quality per unit of scarce resource*: subscription allowance, API spend, token consumption, execution time, and human review attention.
+
+---
+
+## Two core pillars of TOKENMAXXING
+
+TOKENMAXXING treats **model delegation** and **execution-level token efficiency** as equally important foundations. Choosing the right model is only half of the system; the other half is controlling the context, tool calls, caching, agent steps and rework that model consumes.
+
+| Primary pillar | Purpose | Research and operating reference |
+| --- | --- | --- |
+| **I. Intelligent model delegation** | Select the model, reasoning effort and escalation path that meets the quality requirement without redundant oversight. | This paper and [routing policy](policy/routing-policy.yaml) |
+| **II. Claude Code token-maxxing** | Reduce wasted prompt/context, cache rebuilds, redundant tools, oversized solutions and excessive agent loops **without harming verified task quality**. | [Full 2026 Claude Code research](research/claude-code-token-maxxing-2026.md) · [Core token-efficiency policy](policy/token-efficiency.md) |
+
+**Research-informed default:** Start with native caching/context features, compact instructions and selective skills; use `rg` plus precision code navigation; measure end-to-end successful-task cost before adding an optimization plugin. Ponytail is a reasonable *tested candidate*, while Serena, LeanCTX, Context7 and other tools should be introduced only if the workload warrants them. Do **not** promise fixed savings or stack multiple compressors without controlled trials.
+
+**Platform distinction:** Most installation commands in the Claude Code report apply to **Claude Code CLI**, not automatically to **T3 Chat**. T3 remains the central workspace for our model-routing policy; specific Claude Code hooks, MCP plugins and caching settings apply only when the actual runtime supports them.
 
 ---
 

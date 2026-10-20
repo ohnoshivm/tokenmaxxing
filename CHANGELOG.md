@@ -2,6 +2,16 @@
 
 **Created by [Shivam Kumawat](https://github.com/ohnoshivm) (@ohnoshivm) · AgentKind Labs**
 
+## 1.1 — 2026-10-21
+
+- Promoted Claude Code token-maxxing to an equal primary pillar alongside model delegation.
+- Added the full 2026 Claude Code optimization research under `research/`.
+- Added `policy/token-efficiency.md` with safe default workflow, evidence tiers, provider/platform distinctions and controlled trials.
+- Linked the research from the top of the README, project instructions and quick-start guide.
+- Preserved all prior model-routing choices and existing files.
+
+**Verification status:** These additions document research and operating policy; they do not imply plugins have been installed or benchmarked on the user's T3/Claude environments.
+
 ## 1.0 — 2026-10-21
 
 - Collected and rechecked benchmark comparisons using Artificial Analysis as the primary source.

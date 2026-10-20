@@ -7,6 +7,19 @@ This file describes **policy**, not automatic model switching. Use only models, 
 ## Objective
 Deliver the highest verified task quality with minimal *total* wasted reasoning, token use, retries, tool calls, subscription allowance, API charges and human review. Correctness, security, originality and acceptance criteria take precedence over raw token savings.
 
+## First-class token-efficiency policy
+
+See [policy/token-efficiency.md](policy/token-efficiency.md) and the [full Claude Code token-maxxing research](research/claude-code-token-maxxing-2026.md). Token optimisation is a **primary operating objective**, not an optional afterthought:
+
+- Keep permanent instructions brief; load specialist skills and documentation only when relevant.
+- Search for precise paths, names and strings with scoped `rg`; use LSP/AST navigation when symbol semantics or diagnostics matter; use semantic retrieval only when justified.
+- Preserve cache-friendly stable context; compact or clear only at meaningful boundaries, retaining approved decisions and errors.
+- Do not compress failing tests, stack traces, patch anchors or security-critical output beyond what can be safely retrieved.
+- Prefer deterministic scripts and existing utilities to model calls; resist needless abstractions and dependencies.
+- Never add multiple overlapping MCP search, memory or output-compression layers without separate A/B tests.
+- Measure **verified task success, total actual resource usage, retries and time**; per-tool output shrinkage is not proof of session-level savings.
+- Keep Claude Code CLI-specific hooks and settings separate from T3 Chat unless the active runtime explicitly supports them.
+
 ## Model responsibilities
 - **Claude Opus 5.5 Medium — default high-level intelligence.** Problem framing, strategy, creative direction, architecture, UI/UX, important research synthesis, implementation specifications and acceptance criteria.
 - **Claude Opus 5.5 High — important escalation.** Major creative decisions, difficult reasoning, high-impact architecture and flagship critical reviews. Xhigh is exceptional; Max requires explicit approval. No automatic Max.

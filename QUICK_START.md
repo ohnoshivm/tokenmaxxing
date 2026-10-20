@@ -4,6 +4,12 @@
 
 **This repository is an operating protocol, not installed software.** It does not contain a live auto-router or an official T3 configuration file.
 
+## Core foundation: Claude Code token-maxxing
+
+Model selection alone cannot eliminate wasted context or agent steps. Before installing extra plugins, read the [token-efficiency policy](policy/token-efficiency.md) and [2026 research report](research/claude-code-token-maxxing-2026.md). Establish a baseline with native caching, concise instructions, on-demand skills, scoped code search, tests and per-task measurements.
+
+The research includes **optional Claude Code CLI commands**; these do not automatically install into T3 Chat. Avoid changing working authentication, cache settings or MCP configurations merely to match the report.
+
 ## 1. Verify the host
 
 Check whether your active interface is **T3 Chat** (multi-model conversation) or **T3 Code** (code-agent workspaces). Confirm that its version and connected provider actually expose the model names, effort options, delegation features and file/terminal tools you intend to use. In T3 Code, see [official project documentation](https://github.com/pingdotgg/t3code) and [portable handoffs](https://github.com/pingdotgg/t3code/blob/main/docs/user/portable-handoffs.md).
