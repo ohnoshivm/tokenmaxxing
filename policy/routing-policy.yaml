@@ -1,0 +1,74 @@
+# Research and model-routing reference by Shivam Kumawat (https://github.com/ohnoshivm) · AgentKind Labs.
+# REFERENCE POLICY ONLY — not executable or official T3 Chat / T3 Code configuration.
+# Validate exact provider model IDs, supported effort levels and billing before implementation.
+version: '1.0'
+research_date: '2026-10-21'
+quality_first: true
+primary_intelligence:
+  family: claude
+  name: opus-5.5
+  effort: medium
+  when: [strategy, creative_direction, original_concepts, UX_architecture, research_synthesis, task_specification]
+reasoning_escalation:
+  first:
+    family: claude
+    name: opus-5.5
+    effort: high
+    when: [major_decision, high_impact_architecture, premium_review, very_difficult_reasoning]
+  exceptional:
+    family: claude
+    name: opus-5.5
+    effort: xhigh
+    approval: explicit
+  last_resort:
+    family: claude
+    name: opus-5.5
+    effort: max
+    approval: explicit
+coding:
+  primary:
+    family: openai
+    name: gpt-6-luna
+    effort: high
+    task_scope: bounded_and_verifiable
+  escalation:
+    family: openai
+    name: gpt-6.1-sol
+    effort: high
+    triggers: [complex_repo_change, architectural_dependency, hard_debugging, two_unproductive_attempts]
+  optional_luna_extra_effort:
+    allowed_efforts: [xhigh, max]
+    only_for: difficult_coding
+    approval: explicit
+repetitive:
+  primary:
+    family: openai
+    name: gpt-5.6-luna
+    effort: medium
+  secondary:
+    family: claude
+    name: haiku-5.5
+    effort: low
+support:
+  family: claude
+  name: sonnet-5.5
+  effort: medium
+  when: [second_opinion, conventional_analysis, research_synthesis]
+inactive_candidates:
+  - name: deepseek-v4.1-flash-1017
+    activate_only_when: verified_provider_access_and_task_benchmark
+routing_constraints:
+  deterministic_tools_first: true
+  delegation_first: false
+  one_accountable_executor_per_task: true
+  default_gpt_effort_ceiling: high
+  no_unapproved_api_billing: true
+  no_credential_reconfiguration: true
+  require_verification: true
+  retry_limit_before_diagnosis: 2
+  model_switching: manual_unless_native_capability_verified
+  parallel_edits: isolated_worktrees_or_disjoint_files_only
+measurement:
+  primary_external_benchmark: https://artificialanalysis.ai/
+  primary_internal_kpi: verified_quality_adjusted_cost_per_completed_task
+  track: [correctness, output_tokens, reasoning_tokens, cache_tokens, retries, elapsed_time, quota_usage_if_visible, api_cost_if_billed]

@@ -1,0 +1,19 @@
+cff-version: 1.2.0
+message: "If you use this research or implementation reference, please cite it using this metadata."
+title: "TOKENMAXXING: The Premium Model Delegation System — Research and Implementation Reference"
+type: software
+version: "1.0"
+date-released: 2026-10-21
+authors:
+  - family-names: Kumawat
+    given-names: Shivam
+    affiliation: AgentKind Labs
+keywords:
+  - model routing
+  - multi-model agents
+  - token optimisation
+  - AI benchmarking
+  - delegation
+abstract: >-
+  A research-backed, quality-first model-delegation and token-efficiency
+  operating reference for coordinating Claude, GPT and future providers.
