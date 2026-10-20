@@ -4,6 +4,13 @@
 
 This file describes **policy**, not automatic model switching. Use only models, effort settings, tools, subscriptions and delegation mechanisms actually supported and authorized in the current environment. Do not change authentication, provider routes, billing or destructive permissions without approval.
 
+
+## Usage-reset activation (third primary pillar)
+
+A reset is **not universally a signal to send a message**. For provider windows confirmed as *first-request-anchored*, users may opt into one tiny post-reset request on the cheapest available subscription-backed model, timed to the recorded reset. **Fixed weekly pools require no ping**; for unknown reset semantics notify instead. T3 Chat does not expose a verified native auto-message integration in this project.
+
+See [docs/reset-activation.md](docs/reset-activation.md), [policy/reset-activation.md](policy/reset-activation.md) and [prompts/reset-activation-master-prompt.md](prompts/reset-activation-master-prompt.md). The watcher defaults to notifications; sending provider CLI requests requires explicit opt-in and tested correct-account routing. Do not change credentials, OAuth, subscription paths or paid API routing. Never claim a quota timer was restarted from a successful process exit alone.
+
 ## Objective
 Deliver the highest verified task quality with minimal *total* wasted reasoning, token use, retries, tool calls, subscription allowance, API charges and human review. Correctness, security, originality and acceptance criteria take precedence over raw token savings.
 

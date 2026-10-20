@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "accounts": [
+    {
+      "id": "codex-main-session",
+      "provider": "codex",
+      "window": "session",
+      "semantics": "first_request",
+      "next_reset_at": "2026-10-22T09:00:00+05:30",
+      "window_hours": 5,
+      "grace_seconds": 120,
+      "dispatch": "notify",
+      "model": "gpt-6-luna",
+      "prompt": "yo"
+    },
+    {
+      "id": "claude-main-session",
+      "provider": "claude",
+      "window": "session",
+      "semantics": "unverified",
+      "next_reset_at": "2026-10-22T10:00:00+05:30",
+      "dispatch": "notify",
+      "model": "haiku",
+      "prompt": "yo"
+    },
+    {
+      "id": "claude-main-weekly",
+      "provider": "claude",
+      "window": "weekly",
+      "semantics": "fixed",
+      "next_reset_at": "2026-10-25T09:00:00+05:30",
+      "repeat_days": 7,
+      "dispatch": "notify"
+    }
+  ]
+}

@@ -2,6 +2,14 @@
 
 **Created by [Shivam Kumawat](https://github.com/ohnoshivm) (@ohnoshivm) · AgentKind Labs**
 
+## 1.3 — 2026-10-21
+
+- Added **Reset Activation Engine** as the third primary TOKENMAXXING pillar.
+- Added a provider-aware, notification-first reset watcher, ISO timezone handling, fixed vs first-request anchored rules, deduplication, bounded opt-in CLI dispatch, manual acknowledgments, and minute-level macOS LaunchAgent support.
+- Published a concise master prompt, reset-activation policy, example configuration and operator manual.
+- Passed 11 local unit tests covering timing, state protection, auto-dispatch safeguards, fixed reset behaviour and duplicate prevention.
+- **No provider has been contacted and no T3/Claude/Codex authentication, subscriptions or global settings have been modified.**
+
 ## 1.2 — 2026-10-21
 
 - Added one-command `./install.sh` bootstrap and a Python standard-library-only installer with read-only dry runs, pinned upstream checkouts, status and profile discovery.

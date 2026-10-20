@@ -4,6 +4,10 @@
 
 The [full 2026 Claude Code report](../research/claude-code-token-maxxing-2026.md) provides the extensive source analysis. This document translates it into a **minimal default operating policy** that complements [model routing](routing-policy.yaml).
 
+## Third pillar: provider quota reset scheduling
+
+Model efficiency and context compression are complemented by [reset-window activation](reset-activation.md). The provider's clock must be known: **first-request anchored** windows may be eligible for one explicitly approved minimal activation prompt after reset; **fixed weekly** windows are already refreshed and should not be pinged just to start a clock. Unknown behaviour means notifications only. Do not mistake a successful CLI command for verification of a refreshed provider reset timer.
+
 ## Optimisation objective
 
 Maximise **verified successful work** per unit of total resources: fresh input, cached reads/writes, reasoning/output, tool steps, subscription allowance, API charges, elapsed time and corrective rework. Token or log compression alone is not a reliable proxy for success-adjusted cost.

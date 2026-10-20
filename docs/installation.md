@@ -1,5 +1,9 @@
 # Installation and verification
 
+## Optional Reset Activation Engine
+
+The core `./install.sh` remains non-invasive; it does **not** start or send requests through provider accounts. To configure reset monitoring, follow [Reset Activation Engine instructions](reset-activation.md). A macOS per-user LaunchAgent can check confirmed reset timestamps every minute and notify. Never enable CLI dispatch without verifying the provider, subscription account, model and first-message reset behaviour.
+
 ## Quick install
 
 ```bash

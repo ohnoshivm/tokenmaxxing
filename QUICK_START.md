@@ -4,6 +4,10 @@
 
 **This repository is an operating protocol, not installed software.** It does not contain a live auto-router or an official T3 configuration file.
 
+## Reset-window activation
+
+The optional [Reset Activation Engine](docs/reset-activation.md) monitors session and weekly reset times by provider/account. **Copy and edit the example reset timestamps first; no auto-messages are enabled by default.** Run `python3 scripts/reset_watcher.py watch` for notifications, or `./scripts/install-reset-watcher-macos.sh` on macOS for a once-per-minute LaunchAgent. Automatic provider prompts require separate explicit authorization and account verification.
+
 ## One-command TOKENMAXXING install
 
 ```bash

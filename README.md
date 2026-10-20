@@ -6,7 +6,7 @@
 
 **Public research paper + implementation reference**  
 **Created by [Shivam Kumawat](https://github.com/ohnoshivm) (@ohnoshivm) · AgentKind Labs**    
-**Version:** 1.2  
+**Version:** 1.3  
 **Research date:** 21 October 2026  
 **Evidence priority:** [Artificial Analysis](https://artificialanalysis.ai/) → provider documentation → T3 documentation → project-specific controlled experiments  
 **Status:** Proposed operating policy and portable implementation kit; **not** a claim that the author's applications have already been configured.  
@@ -50,6 +50,23 @@ TOKENMAXXING treats **model delegation** and **execution-level token efficiency*
 **Platform distinction:** Most installation commands in the Claude Code report apply to **Claude Code CLI**, not automatically to **T3 Chat**. T3 remains the central workspace for our model-routing policy; specific Claude Code hooks, MCP plugins and caching settings apply only when the actual runtime supports them.
 
 ---
+
+
+## Third primary pillar — Provider Reset Activation Engine
+
+TOKENMAXXING now includes a **provider-aware reset activation system** for session, weekly and model-specific allowance pools. It watches user-confirmed reset timestamps with minute-level local checks, avoids duplicate actions and optionally sends a tiny prompt with the cheapest eligible subscription-backed model. **Sending messages is OFF by default.**
+
+- [Reset Activation Engine — setup, safety and provider differences](docs/reset-activation.md)
+- [Primary reset activation policy](policy/reset-activation.md)
+- [Concise master prompt](prompts/reset-activation-master-prompt.md)
+- [Reset watcher implementation](scripts/reset_watcher.py) and [11 local tests](tests/test_reset_watcher.py)
+
+**Critical:** OpenAI describes first-request-anchored Work/Codex session windows, while Claude's weekly quotas reset on a fixed schedule. Do **not** auto-message fixed weekly pools; if reset semantics are unknown, notify instead. T3's Usage → Limits data does not automatically give this project permission to send T3 messages. [OpenAI reference](https://help.openai.com/en/articles/20001516-managing-usage-with-gpt-6-astra-in-work-and-codex) · [Claude reference](https://support.claude.com/en/articles/8325606-what-is-the-pro-plan)
+
+**Quick start:** copy `config/reset-watcher.example.json` into `~/.config/tokenmaxxing/reset-watcher.json`, replace the sample timestamps, then run `python3 scripts/reset_watcher.py watch`. On macOS, `./scripts/install-reset-watcher-macos.sh` sets up a **notification-only** per-user checker at 60-second intervals.
+
+---
+
 
 ## Authors and attribution
 
