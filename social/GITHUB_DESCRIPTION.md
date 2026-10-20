@@ -20,3 +20,7 @@ Research-backed model delegation and Claude Code token-maxxing: efficient contex
 **Author:** [Shivam Kumawat](https://github.com/ohnoshivm) (@ohnoshivm)  
 **Project / research initiative:** AgentKind Labs  
 **Citation:** See `CITATION.cff` and `CREDITS.md`.
+
+## Third pillar: Reset Activation Engine
+
+Provider-aware notifications for usage resets, with optional, explicitly authorised one-word first requests for verified activity-anchored windows. Fixed weekly pools are never pinged simply to start a timer. See [docs/reset-activation.md](../docs/reset-activation.md) and [the reusable master prompt](../prompts/reset-activation-master-prompt.md).
