@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "research_date": "2026-10-21",
+  "vendor_policy": "Pin git revisions; clone to a user-controlled local cache; never execute vendored install scripts automatically; do not republish bundled upstream source.",
+  "tools": [
+    {
+      "id": "ponytail",
+      "source": "https://github.com/DietrichGebert/ponytail.git",
+      "upstream": "DietrichGebert/ponytail",
+      "revision": "09c434ab73ca43761c5d8b0c5d341926c2fba710",
+      "kind": "coding-behavior",
+      "claude_plugin": {
+        "marketplace": "DietrichGebert/ponytail",
+        "name": "ponytail",
+        "marketplace_id": "ponytail"
+      },
+      "default_activation": "none",
+      "notes": "Ponytail is the best independently tested starting candidate. Its hooks may alter implementation behavior."
+    },
+    {
+      "id": "occam",
+      "source": "https://github.com/quisbaum-prog/occam.git",
+      "upstream": "quisbaum-prog/occam",
+      "revision": "c8af9d146c837749366fb4d9d149edd4c17b0217",
+      "kind": "coding-behavior",
+      "claude_plugin": {
+        "marketplace": "quisbaum-prog/occam",
+        "name": "occam",
+        "marketplace_id": "occam"
+      },
+      "default_activation": "none",
+      "notes": "Developer-reported cost reductions. Never run simultaneously with Ponytail."
+    },
+    {
+      "id": "whittle",
+      "source": "https://github.com/Obed0101/whittle.git",
+      "upstream": "Obed0101/whittle",
+      "revision": "8013e04d9219f2d4d2e12bd0a3994e358625c0e3",
+      "kind": "coding-behavior",
+      "claude_plugin": {
+        "marketplace": "Obed0101/whittle",
+        "name": "whittle",
+        "marketplace_id": "whittle"
+      },
+      "default_activation": "none",
+      "notes": "On-demand feature-completeness skill; especially relevant for full UI/product briefs."
+    },
+    {
+      "id": "chisle",
+      "source": "https://github.com/JayPokale/Chisle.git",
+      "upstream": "JayPokale/Chisle",
+      "revision": "0d4bc99c5379e2996a72338282f23ec8cdfab304",
+      "kind": "coding-behavior",
+      "claude_plugin": null,
+      "default_activation": "none",
+      "notes": "Do not run its unscoped installer; can modify multiple AI apps. Dry-run and Claude-only scopes required."
+    },
+    {
+      "id": "master-of-tokens",
+      "source": "https://github.com/devrudals/master-of.git",
+      "upstream": "devrudals/master-of",
+      "revision": "62dbb5b52710650bd1b837e1646a172e4e302dfa",
+      "kind": "skill-discovery",
+      "claude_plugin": {
+        "marketplace": "devrudals/master-of",
+        "name": "master-of",
+        "marketplace_id": "master-of"
+      },
+      "default_activation": "none",
+      "notes": "Skill gating risks hiding needed capabilities. Inspect manifest and preserve reversibility."
+    },
+    {
+      "id": "claude-token-saver",
+      "source": "https://github.com/AllenSwift/claude-token-saver.git",
+      "upstream": "AllenSwift/claude-token-saver",
+      "revision": "fb2411e80deea5bbc4fa0262c789389c8e1b4063",
+      "kind": "deterministic-tools",
+      "claude_plugin": null,
+      "default_activation": "none",
+      "notes": "Inspect upstream install script before running; scripted file maps may be used on demand."
+    },
+    {
+      "id": "simple-man",
+      "source": "https://github.com/Maksim-Burtsev/simple-man.git",
+      "upstream": "Maksim-Burtsev/simple-man",
+      "revision": "bf37f83442622fe7a89d3316cd6b9bcc344523b9",
+      "kind": "output-style",
+      "claude_plugin": null,
+      "default_activation": "none",
+      "notes": "Measured output reduction did not show demonstrated session-cost saving. On demand only."
+    },
+    {
+      "id": "simpler-token-saver",
+      "source": "https://github.com/tim-hub/cc-simpler-token-saver.git",
+      "upstream": "tim-hub/cc-simpler-token-saver",
+      "revision": "02fb4e0af148127253172adf98d6803a7c6c3f1d",
+      "kind": "output-style",
+      "claude_plugin": null,
+      "default_activation": "none",
+      "notes": "Output-style candidate; do not auto-overwrite active output-style settings."
+    }
+  ]
+}

@@ -41,3 +41,7 @@ A licence has not yet been selected. Request permission before assuming reuse ri
 ## Additional token-efficiency research
 
 The [Claude Code Token-Maxxing: 2026 Research Report](research/claude-code-token-maxxing-2026.md) was supplied for inclusion and curated into TOKENMAXXING by **Shivam Kumawat (@ohnoshivm) · AgentKind Labs**. All original third-party projects, measurements, documentation and experiments are attributed through links in the report. Inclusion does not imply independent replication or endorsement of every reported result.
+
+## Third-party optimizer attribution
+
+All eight dependency projects remain owned by their upstream maintainers and are linked through pinned Git submodules: [Ponytail](https://github.com/DietrichGebert/ponytail), [Occam](https://github.com/quisbaum-prog/occam), [Whittle](https://github.com/Obed0101/whittle), [Chisle](https://github.com/JayPokale/Chisle), [Master of Tokens](https://github.com/devrudals/master-of), [Claude Token Saver](https://github.com/AllenSwift/claude-token-saver), [Simple Man](https://github.com/Maksim-Burtsev/simple-man) and [Simpler Token Saver](https://github.com/tim-hub/cc-simpler-token-saver). TOKENMAXXING's creator attribution does not claim ownership or original authorship of these external works. Read each upstream license before modification or redistribution.

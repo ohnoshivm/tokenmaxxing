@@ -6,13 +6,33 @@
 
 **Public research paper + implementation reference**  
 **Created by [Shivam Kumawat](https://github.com/ohnoshivm) (@ohnoshivm) · AgentKind Labs**    
-**Version:** 1.1  
+**Version:** 1.2  
 **Research date:** 21 October 2026  
 **Evidence priority:** [Artificial Analysis](https://artificialanalysis.ai/) → provider documentation → T3 documentation → project-specific controlled experiments  
 **Status:** Proposed operating policy and portable implementation kit; **not** a claim that the author's applications have already been configured.  
 **Platform:** Designed for a unified T3-based workflow, with portable instructions usable elsewhere.
 
 > **Thesis:** The most useful multi-model system does not maximize the number of models, agents, or thinking tokens. It maximizes *verified outcome quality per unit of scarce resource*: subscription allowance, API spend, token consumption, execution time, and human review attention.
+
+---
+
+## Install and use TOKENMAXXING — now an actual toolkit
+
+**One-command bootstrap (macOS/Linux, Python 3.9+ and Git):**
+
+```bash
+git clone https://github.com/ohnoshivm/tokenmaxxing.git
+cd tokenmaxxing
+./install.sh
+```
+
+The installer stages **eight pinned upstream optimizer repositories** and installs the self-contained `TOKENMAXXING` coding-efficiency skill for Claude Code. The same repository can also be installed as an [official-format Claude Code plugin](docs/installation.md#native-claude-code-plugin-installation-no-checkout-needed). No upstream optimizer hooks run until explicitly enabled; changing provider authentication, MCP servers, paid API routing or T3 settings is outside the bootstrap's scope.
+
+**Primary optimization candidates:** [Ponytail](https://github.com/DietrichGebert/ponytail), [Occam](https://github.com/quisbaum-prog/occam), [Whittle](https://github.com/Obed0101/whittle), [Chisle](https://github.com/JayPokale/Chisle), [Master of Tokens](https://github.com/devrudals/master-of), [Claude Token Saver](https://github.com/AllenSwift/claude-token-saver), [Simple Man](https://github.com/Maksim-Burtsev/simple-man) and [Simpler Token Saver](https://github.com/tim-hub/cc-simpler-token-saver). All eight are also linked as pinned GitHub submodules under `third_party/`, with attribution to original authors.
+
+**Read:** [Installation](docs/installation.md) · [Source research](research/optimizer-behavior-comparison-2026.md) · [Optimizer profiles](docs/optimizer-profiles.md) · [Tool registry](policy/optimizer-registry.json) · [T3 Chat compatibility](docs/t3-chat.md).
+
+**Key constraint:** Use **one** coding-behavior optimizer at a time; 'all-in-one' means a single installation/selection interface, **not** simultaneously activating conflicting rules and hooks. T3 Chat model routing remains separate unless supported by the actual host.
 
 ---
 
@@ -23,7 +43,7 @@ TOKENMAXXING treats **model delegation** and **execution-level token efficiency*
 | Primary pillar | Purpose | Research and operating reference |
 | --- | --- | --- |
 | **I. Intelligent model delegation** | Select the model, reasoning effort and escalation path that meets the quality requirement without redundant oversight. | This paper and [routing policy](policy/routing-policy.yaml) |
-| **II. Claude Code token-maxxing** | Reduce wasted prompt/context, cache rebuilds, redundant tools, oversized solutions and excessive agent loops **without harming verified task quality**. | [Full 2026 Claude Code research](research/claude-code-token-maxxing-2026.md) · [Core token-efficiency policy](policy/token-efficiency.md) |
+| **II. Token-maxxing, context and optimizer engineering** | Reduce wasted prompt/context, cache rebuilds, redundant tools, oversized solutions and excessive agent loops **without harming verified task quality**. | [Full 2026 Claude Code research](research/claude-code-token-maxxing-2026.md) · [Core token-efficiency policy](policy/token-efficiency.md) |
 
 **Research-informed default:** Start with native caching/context features, compact instructions and selective skills; use `rg` plus precision code navigation; measure end-to-end successful-task cost before adding an optimization plugin. Ponytail is a reasonable *tested candidate*, while Serena, LeanCTX, Context7 and other tools should be introduced only if the workload warrants them. Do **not** promise fixed savings or stack multiple compressors without controlled trials.
 

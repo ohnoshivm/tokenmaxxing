@@ -53,3 +53,9 @@ Never alter working subscription OAuth, Token Harbor configuration, API billing,
 6. Document the exact setup, version, model and effort in [the scorecard](../evaluation/scorecard.csv).
 
 **Permanent rule:** Optimise the full problem-solving trajectory, not merely the apparent size of a single model response.
+
+## One-stop optimizer registry and portable skill (v1.2)
+
+The project now includes [a one-command installer](../docs/installation.md), a [portable TOKENMAXXING skill](../skills/tokenmaxxing/SKILL.md), [five optimizer profiles](../docs/optimizer-profiles.md), [eight pinned sources](optimizer-registry.json), [new research](../research/optimizer-behavior-comparison-2026.md), and a Claude Code plugin marketplace entry. This is a **staged toolkit**: native Claude plugins are not auto-activated. Users choose exactly one coding-behavior optimizer after benchmark validation, not all of them simultaneously.
+
+Suggested trials: **Balanced:** Ponytail; **Deep reasoning:** Occam vs baseline; **Full product:** Whittle vs baseline; **Minimal patch:** Ponytail Lite / Occam Lite / Chisle separately; **Large repo:** scoped search and one selectively enabled retrieval indexer. Master of Tokens is optional when measured skill metadata is substantial.

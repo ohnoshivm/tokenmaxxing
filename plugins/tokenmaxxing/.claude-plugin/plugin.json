@@ -1,0 +1,9 @@
+{
+  "name": "tokenmaxxing",
+  "version": "1.2.0",
+  "description": "Quality-first token-efficient coding, context and optimizer selection skill",
+  "author": {
+    "name": "Shivam Kumawat \u00b7 AgentKind Labs"
+  },
+  "homepage": "https://github.com/ohnoshivm/tokenmaxxing"
+}

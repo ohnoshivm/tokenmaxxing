@@ -1,0 +1,10 @@
+# Installed caches, skill copies, private work and local credentials
+.claude/
+.tokenmaxxing/
+vendor/
+__pycache__/
+*.pyc
+.env
+.env.*
+*.backup-*
+.DS_Store

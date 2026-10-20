@@ -51,3 +51,7 @@ For significant cross-model tasks, use `templates/TASK_BRIEF.md` and `templates/
 
 ## Platform-specific caveat
 T3 Chat is a conversational interface; T3 Code is a coding-agent control surface. Cross-provider handoff and native delegation depend on the installed app version and provider adapter. These project instructions do not themselves enable tools or routing. The routing YAML is **reference only**, not official T3 configuration.
+
+## The TOKENMAXXING toolkit (v1.2)
+
+Use the [reusable skill](skills/tokenmaxxing/SKILL.md), [profile guide](docs/optimizer-profiles.md) and [optimizer registry](policy/optimizer-registry.json). Eight third-party optimizer repositories are GitHub submodules under `third_party/` and pinned by revision. Their source is upstream-owned. Prioritize task correctness and feature completeness; test **Ponytail versus Occam versus Whittle versus Chisle** in isolation, never stack their incompatible hooks automatically. The bootstrap installs our own skill and stages sources but does not enable upstream plugins or change T3 Chat authentication. See [setup](docs/installation.md).

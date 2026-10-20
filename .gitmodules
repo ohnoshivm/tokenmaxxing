@@ -1,0 +1,24 @@
+[submodule "third_party/ponytail"]
+	path = third_party/ponytail
+	url = https://github.com/DietrichGebert/ponytail.git
+[submodule "third_party/occam"]
+	path = third_party/occam
+	url = https://github.com/quisbaum-prog/occam.git
+[submodule "third_party/whittle"]
+	path = third_party/whittle
+	url = https://github.com/Obed0101/whittle.git
+[submodule "third_party/chisle"]
+	path = third_party/chisle
+	url = https://github.com/JayPokale/Chisle.git
+[submodule "third_party/master-of-tokens"]
+	path = third_party/master-of-tokens
+	url = https://github.com/devrudals/master-of.git
+[submodule "third_party/claude-token-saver"]
+	path = third_party/claude-token-saver
+	url = https://github.com/AllenSwift/claude-token-saver.git
+[submodule "third_party/simple-man"]
+	path = third_party/simple-man
+	url = https://github.com/Maksim-Burtsev/simple-man.git
+[submodule "third_party/simpler-token-saver"]
+	path = third_party/simpler-token-saver
+	url = https://github.com/tim-hub/cc-simpler-token-saver.git

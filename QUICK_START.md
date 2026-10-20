@@ -4,6 +4,16 @@
 
 **This repository is an operating protocol, not installed software.** It does not contain a live auto-router or an official T3 configuration file.
 
+## One-command TOKENMAXXING install
+
+```bash
+git clone https://github.com/ohnoshivm/tokenmaxxing.git
+cd tokenmaxxing
+./install.sh
+```
+
+Requires Git and Python 3.9+. This installs our portable skill and stages eight pinned optimizer sources. No conflicting upstream hooks, proxies or provider settings are enabled. See [installation details](docs/installation.md) and [T3 Chat guide](docs/t3-chat.md).
+
 ## Core foundation: Claude Code token-maxxing
 
 Model selection alone cannot eliminate wasted context or agent steps. Before installing extra plugins, read the [token-efficiency policy](policy/token-efficiency.md) and [2026 research report](research/claude-code-token-maxxing-2026.md). Establish a baseline with native caching, concise instructions, on-demand skills, scoped code search, tests and per-task measurements.

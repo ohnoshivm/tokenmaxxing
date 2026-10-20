@@ -1,0 +1,15 @@
+{
+  "name": "tokenmaxxing",
+  "description": "TOKENMAXXING \u2014 minimal core skill and researched optimizer registry",
+  "owner": {
+    "name": "Shivam Kumawat \u00b7 AgentKind Labs"
+  },
+  "plugins": [
+    {
+      "name": "tokenmaxxing",
+      "source": "./plugins/tokenmaxxing",
+      "description": "Portable token-efficient agent execution instructions; no hooks or proxies",
+      "category": "development"
+    }
+  ]
+}

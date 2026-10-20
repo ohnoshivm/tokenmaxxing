@@ -2,6 +2,15 @@
 
 **Created by [Shivam Kumawat](https://github.com/ohnoshivm) (@ohnoshivm) · AgentKind Labs**
 
+## 1.2 — 2026-10-21
+
+- Added one-command `./install.sh` bootstrap and a Python standard-library-only installer with read-only dry runs, pinned upstream checkouts, status and profile discovery.
+- Added native Claude Code marketplace plugin packaging for the project's token-efficiency skill.
+- Added eight third-party optimizer sources as pinned GitHub submodules with an attribution-preserving dependency registry; external source code is not vendored or relicensed.
+- Added five task-specific optimizer profiles, T3 Chat host-compatibility instructions, reusable skill, feature-completeness research, installation/verification instructions and automated installer tests.
+- Promoted **Ponytail vs Occam vs Whittle vs Chisle** to a controlled optimizer-comparison track, with skill-discovery gating via Master of Tokens as an optional experiment.
+- No external optimizer auto-activation, API routing changes, auth changes, MCP replacement or user-device installation is claimed. Local unit tests passed before publication.
+
 ## 1.1 — 2026-10-21
 
 - Promoted Claude Code token-maxxing to an equal primary pillar alongside model delegation.
