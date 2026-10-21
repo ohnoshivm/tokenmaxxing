@@ -74,6 +74,17 @@ def summarize(events, **kwargs):
 
 
 class CheckPatternTests(unittest.TestCase):
+    def test_matches_wrapped_and_extended_checks(self):
+        for command in ('npx tsc --noEmit', 'npx vitest run', 'npx playwright test',
+                        'pnpm exec tsc', 'pnpm dlx vitest run', 'bunx eslint .',
+                        'uv run pytest', 'poetry run pytest', 'python -m pytest',
+                        'python3 -m unittest', 'FOO=1 npx tsc', 'cd app && bunx vitest',
+                        'npm run test:unit', 'pnpm build:prod', 'yarn lint:fix',
+                        'bun run check:types', 'next build', 'vite build', 'astro check',
+                        'svelte-check', 'node --test', 'deno test'):
+            with self.subTest(command=command):
+                self.assertTrue(audit.is_check_command(command), command)
+
     def test_matches_common_check_commands(self):
         for command in ('pytest -q', 'python3 -m unittest discover -s tests', 'npm test',
                         'pnpm run lint', 'yarn build', 'bun typecheck', 'vitest run', 'jest --ci',
@@ -87,7 +98,10 @@ class CheckPatternTests(unittest.TestCase):
 
     def test_does_not_match_lookalikes(self):
         for command in ('echo pytest', 'cat tests/test_audit.py', 'grep -r pytest .',
-                        'git commit -m "run pytest"', 'ls', ''):
+                        'git commit -m "run pytest"', 'ls', '', 'jestfoo', 'tscfoo',
+                        'pytestfoo', 'eslintfoo', 'tsc-rs', 'npx jestfoo', 'pnpm dlx tscfoo',
+                        'next buildfoo', 'playwright testfoo', 'npm run testing',
+                        'echo npx vitest', 'grep pytest', 'FOO=1 echo pytest'):
             with self.subTest(command=command):
                 self.assertFalse(audit.is_check_command(command), command)
 
@@ -98,6 +112,25 @@ class CheckPatternTests(unittest.TestCase):
 
 
 class WorkLedgerTests(unittest.TestCase):
+    def test_omitted_error_means_success_only_with_a_result(self):
+        report = summarize([
+            assistant('t1', [tool_use('e1', 'Edit', file_path='/repo/a.py'),
+                             tool_use('e2', 'Write', file_path='/repo/b.py')]),
+            result('e1'),
+            assistant('t2', [tool_use('c1', 'Bash', command='pytest'),
+                             tool_use('c2', 'Bash', command='npm test'),
+                             tool_use('g1', 'Bash', command='git commit -m "x"')]),
+            result('c1'),
+            result('g1'),
+        ])
+        work = report['work']
+        self.assertEqual(work['edits'], 1)
+        self.assertEqual(work['checks'], 2)
+        self.assertEqual(work['checks_passed'], 1)
+        self.assertEqual(work['checks_failed'], 0)
+        self.assertEqual(work['verified_edit_sessions'], 1)
+        self.assertEqual(work['commits'], 1)
+
     def test_counts_successful_and_failed_edits(self):
         report = summarize([
             assistant('t1', [tool_use('e1', 'Write', file_path='/repo/a.py'),
@@ -116,17 +149,18 @@ class WorkLedgerTests(unittest.TestCase):
         report = summarize([
             assistant('t1', [tool_use('c1', 'Bash', command='pytest -q'),
                              tool_use('c2', 'Bash', command='npm test'),
-                             tool_use('c3', 'Bash', command='make check')]),
+                             tool_use('c3', 'Bash', command='make check'),
+                             tool_use('c4', 'Bash', command='tsc')]),
             result('c1', is_error=False),
             result('c2', is_error=True),
             result('c3'),
         ])
 
         work = report['work']
-        self.assertEqual(work['checks'], 3)
-        self.assertEqual(work['checks_passed'], 1)
+        self.assertEqual(work['checks'], 4)
+        self.assertEqual(work['checks_passed'], 2)
         self.assertEqual(work['checks_failed'], 1)
-        self.assertEqual(work['rework_rate'], 0.5)
+        self.assertEqual(work['rework_rate'], 0.3333)
 
     def test_echo_pytest_is_not_a_check(self):
         report = summarize([
@@ -277,7 +311,7 @@ class ModelTierTests(unittest.TestCase):
 
 
 class CodexWorkTests(unittest.TestCase):
-    def _session(self, items):
+    def _session(self, items, raw_calls=()):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / 'rollout.jsonl'
             events = [
@@ -286,6 +320,8 @@ class CodexWorkTests(unittest.TestCase):
                 {'type': 'event_msg', 'payload': {'type': 'token_count', 'info': {
                     'total_token_usage': {'input_tokens': 100, 'cached_input_tokens': 20, 'output_tokens': 5}}}},
             ]
+            for call in raw_calls:
+                events.append({'type': 'response_item', 'payload': call})
             for item in items:
                 events.append({'type': 'event_msg', 'payload': {'type': 'item_completed', 'item': item}})
             write_jsonl(path, events)
@@ -307,6 +343,32 @@ class CodexWorkTests(unittest.TestCase):
         self.assertEqual(session.work['checks_failed'], 1)
         self.assertEqual(session.work['edits'], 1)
         self.assertEqual(session.work['commits'], 1)
+
+    def test_exec_events_take_precedence_over_raw_calls(self):
+        session = self._session([
+            {'type': 'CommandExecution', 'command': ['bash', '-lc', 'pytest'],
+             'exit_code': 1, 'status': 'completed'},
+            {'type': 'FileChange', 'status': 'completed', 'changes': {}},
+        ], raw_calls=[
+            {'type': kind, 'name': 'exec', 'status': 'completed',
+             'input': json.dumps({'command': ['bash', '-lc', 'pytest']})}
+            for kind in ('function_call', 'custom_tool_call')
+        ] + [{'type': 'custom_tool_call', 'name': 'apply_patch', 'status': 'completed'}])
+
+        self.assertEqual(session.work['edits'], 1)
+        self.assertEqual(session.work['checks'], 1)
+        self.assertEqual(session.work['checks_passed'], 0)
+        self.assertEqual(session.work['checks_failed'], 1)
+
+    def test_missing_codex_outcome_stays_unknown(self):
+        session = self._session([
+            {'type': 'CommandExecution', 'command': ['bash', '-lc', 'pytest']},
+            {'type': 'FileChange', 'changes': {}},
+        ])
+        self.assertEqual(session.work['edits'], 0)
+        self.assertEqual(session.work['checks'], 1)
+        self.assertEqual(session.work['checks_passed'], 0)
+        self.assertEqual(session.work['checks_failed'], 0)
 
     def test_falls_back_to_custom_tool_calls(self):
         with tempfile.TemporaryDirectory() as tmp:

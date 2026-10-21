@@ -27,9 +27,8 @@ TIERS_PATH = Path(__file__).resolve().parents[1] / 'policy' / 'model-tiers.json'
 # &&/;/| segment, so `echo pytest` is not a check. Proxy, not proof of passing.
 CHECK_PATTERN = re.compile(r'''(?xi)
     (?:
-        pytest
-      | python[0-9.]*\s+-m\s+(?:unittest|pytest)
-      | (?:npm|pnpm|yarn|bun)\s+(?:run\s+)?(?:test|build|lint|typecheck|check)\b
+        pytest | unittest
+      | (?:npm|pnpm|yarn|bun)\s+(?:run\s+)?(?:test|build|lint|typecheck|check)(?::[\w:.-]+)?
       | vitest | jest | tsc | eslint | ruff | mypy
       | cargo\s+(?:test|build|check|clippy)
       | go\s+(?:test|build|vet)
@@ -37,11 +36,13 @@ CHECK_PATTERN = re.compile(r'''(?xi)
       | (?:gradle|mvn|\./gradlew|gradlew)\b.*\btest
       | swift\s+(?:test|build)
       | playwright\s+test
-    )
+      | (?:next|vite)\s+build
+      | astro\s+check | svelte-check | node\s+--test | deno\s+test
+    )(?=\s|$)
 ''')
 SEGMENT_SPLIT = re.compile(r'&&|\|\||[;|\n]')
 # Wrappers that do not change which command actually runs.
-WRAPPERS = r'(?:(?:npx|time|sudo|command|uv\s+run|poetry\s+run|pnpm\s+exec|yarn\s+exec)\s+)*'
+WRAPPERS = r'(?:(?:npx|bunx|time|sudo|command|uv\s+run|poetry\s+run|pnpm\s+(?:exec|dlx)|yarn\s+exec|python[0-9.]*\s+-m)\s+)*'
 SEGMENT_HEAD = re.compile(rf'^\s*(?:[A-Za-z_][A-Za-z0-9_]*=\S*\s+)*{WRAPPERS}(.*)$', re.S)
 # Slash-command invocations are stored in user turns as a tagged line, not as tool calls.
 COMMAND_NAME = re.compile(r'<command-name>\s*/?([^<\s]+)\s*</command-name>')
@@ -375,10 +376,13 @@ def parse_claude(path, since=None, until=None, seen_msgs=None, seen_tool_ids=Non
                         result_ids.add(call_id)
                         meta = call_meta.get(call_id)
                         if meta:
-                            _record_call(s, meta[0], meta[1], b.get('is_error'), meta[2])
+                            _record_call(s, meta[0], meta[1], b.get('is_error', False), meta[2])
                         t = est_tokens(b.get('content'))
                         if t:
                             pending.append([t, calls.get(call_id, '?'), s.turns])
+    for call_id, (name, command, index) in call_meta.items():
+        if call_id not in result_ids:
+            _record_call(s, name, command, None, index)
     close_segment()
     return s if s.turns else None
 
