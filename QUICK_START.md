@@ -9,10 +9,12 @@
 ```bash
 python3 tokenmaxxing.py audit --since 7d
 python3 tokenmaxxing.py doctor
+python3 tokenmaxxing.py fix            # dry run; --apply then --undo if you agree
+python3 tokenmaxxing.py guard --print-hook
 python3 tokenmaxxing.py statusline --install
 ```
 
-`audit` reads local Claude Code transcript and Codex rollout usage offline; `doctor` inspects always-loaded context and optimizer stacking. Both are read-only. `statusline --install` prints a Claude Code settings snippet and never writes it. After making a change, compare equal windows with `python3 tokenmaxxing.py audit --since 7d --compare`. See [statusline setup](docs/statusline.md).
+`audit` reads local Claude Code transcript and Codex rollout usage offline; `doctor` inspects always-loaded context and optimizer stacking. Both are read-only. `fix` moves unused skills into a dated archive with a manifest (`--undo` restores; nothing is deleted). `guard --print-hook` and `statusline --install` print a Claude Code settings snippet and never write it. After making a change, compare equal windows with `python3 tokenmaxxing.py audit --since 7d --compare`. See [fix](docs/fix.md), [guard](docs/guard.md) and [statusline setup](docs/statusline.md).
 
 ## Reset-window activation — integrated feature
 

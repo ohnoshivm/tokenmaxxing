@@ -11,6 +11,7 @@ from datetime import datetime, timedelta, timezone
 import json
 import os
 from pathlib import Path
+import re
 import statistics
 import sys
 
@@ -20,6 +21,91 @@ import sys
 WEIGHTS = {'input': 1.0, 'cache_write_5m': 1.25, 'cache_write_1h': 2.0, 'cache_read': 0.1, 'output': 5.0}
 CHARS_PER_TOKEN = 4  # rough estimate for tool output; usage fields are exact
 REBUILD_MIN = 20_000  # cache write this large while reading less than it = prefix rebuilt
+EDIT_TOOLS = ('Edit', 'MultiEdit', 'Write', 'NotebookEdit')
+TIERS_PATH = Path(__file__).resolve().parents[1] / 'policy' / 'model-tiers.json'
+# Shell commands that constitute a check. Matched against the first word of each
+# &&/;/| segment, so `echo pytest` is not a check. Proxy, not proof of passing.
+CHECK_PATTERN = re.compile(r'''(?xi)
+    (?:
+        pytest | unittest
+      | (?:npm|pnpm|yarn|bun)\s+(?:run\s+)?(?:test|build|lint|typecheck|check)(?::[\w:.-]+)?
+      | vitest | jest | tsc | eslint | ruff | mypy
+      | cargo\s+(?:test|build|check|clippy)
+      | go\s+(?:test|build|vet)
+      | make\s+(?:test|check|build)
+      | (?:gradle|mvn|\./gradlew|gradlew)\b.*\btest
+      | swift\s+(?:test|build)
+      | playwright\s+test
+      | (?:next|vite)\s+build
+      | astro\s+check | svelte-check | node\s+--test | deno\s+test
+    )(?=\s|$)
+''')
+SEGMENT_SPLIT = re.compile(r'&&|\|\||[;|\n]')
+# Wrappers that do not change which command actually runs.
+WRAPPERS = r'(?:(?:npx|bunx|time|sudo|command|uv\s+run|poetry\s+run|pnpm\s+(?:exec|dlx)|yarn\s+exec|python[0-9.]*\s+-m)\s+)*'
+SEGMENT_HEAD = re.compile(rf'^\s*(?:[A-Za-z_][A-Za-z0-9_]*=\S*\s+)*{WRAPPERS}(.*)$', re.S)
+# Slash-command invocations are stored in user turns as a tagged line, not as tool calls.
+COMMAND_NAME = re.compile(r'<command-name>\s*/?([^<\s]+)\s*</command-name>')
+
+
+def normalize_command(segment):
+    return ' '.join(segment.split())
+
+
+def command_segments(command):
+    """Split a shell string into segments, dropping leading env assignments and wrappers."""
+    out = []
+    for raw in SEGMENT_SPLIT.split(command):
+        match = SEGMENT_HEAD.match(raw or '')
+        segment = normalize_command(match.group(1) if match else raw or '')
+        if segment:
+            out.append(segment)
+    return out
+
+
+def matching_checks(command):
+    """Normalized check segments in a shell command; empty when it is not a check."""
+    if not isinstance(command, str) or not command.strip():
+        return []
+    return [segment for segment in command_segments(command) if CHECK_PATTERN.match(segment)]
+
+
+def is_check_command(command):
+    return bool(matching_checks(command))
+
+
+def has_commit(command):
+    """A git commit invocation that is not a dry run."""
+    if not isinstance(command, str):
+        return False
+    for segment in command_segments(command):
+        if re.match(r'git\s+commit\b', segment) and '--dry-run' not in segment:
+            return True
+    return False
+
+
+def _tier_patterns():
+    try:
+        data = json.loads(TIERS_PATH.read_text(encoding='utf-8'))
+    except (OSError, ValueError):
+        return []
+    out = []
+    for item in data.get('tiers', []) if isinstance(data, dict) else []:
+        if not isinstance(item, dict) or item.get('tier') not in ('premium', 'standard', 'economy'):
+            continue
+        try:
+            out.append((re.compile(item.get('pattern', ''), re.I), item['tier']))
+        except (re.error, TypeError):
+            continue
+    return out
+
+
+def model_tier(model, patterns=None):
+    patterns = _tier_patterns() if patterns is None else patterns
+    for pattern, tier in patterns:
+        if model and pattern.search(model):
+            return tier
+    return 'unknown'
 
 
 def claude_roots():
@@ -83,7 +169,7 @@ def project_name(path):
 
 class Session:
     __slots__ = ('id', 'project', 'agent', 'start', 'turns', 'usage', 'models', 'baseline',
-                 'rebuilds', 'results', 'reads', 'subagent')
+                 'rebuilds', 'results', 'reads', 'subagent', 'work', 'skills', 'plugin_skills')
 
     def __init__(self, sid, project, agent, subagent=False):
         self.id, self.project, self.agent, self.subagent = sid, project, agent, subagent
@@ -93,9 +179,76 @@ class Session:
         self.rebuilds = []   # cache_write tokens per rebuild event
         self.results = []    # (est_tokens, label, carry_turns)
         self.reads = Counter()
+        # Work ledger: counts of tool calls and their outcomes. -1 means "none yet".
+        self.work = {'edits': 0, 'checks': 0, 'checks_passed': 0, 'checks_failed': 0,
+                     'commits': 0, 'last_edit_seq': -1, 'last_pass_seq': -1,
+                     'distinct_passing': set()}
+        self.skills = Counter()
+        self.plugin_skills = Counter()
 
     def weighted(self):
         return sum(self.usage[k] * w for k, w in WEIGHTS.items())
+
+    def verified_edit(self):
+        """True when a passing check ran after the last successful edit."""
+        return self.work['edits'] > 0 and self.work['last_pass_seq'] > self.work['last_edit_seq']
+
+
+def skill_name(raw):
+    """Split a `plugin:name` skill id into (bare name, scoped id or None)."""
+    text = (raw or '').strip()
+    if not text:
+        return None, None
+    if ':' in text:
+        plugin, _, bare = text.partition(':')
+        return (bare.strip() or text), text
+    return text, None
+
+
+def _record_skill(session, raw):
+    bare, scoped = skill_name(raw)
+    if not bare:
+        return
+    session.skills[bare] += 1
+    if scoped:
+        session.plugin_skills[scoped] += 1
+
+
+def _record_prompt_commands(session, content):
+    """Count slash-command invocations recorded in a user turn's text."""
+    if isinstance(content, str):
+        texts = [content]
+    elif isinstance(content, list):
+        texts = [b.get('text', '') for b in content
+                 if isinstance(b, dict) and b.get('type') == 'text']
+    else:
+        texts = []
+    for text in texts:
+        for match in COMMAND_NAME.finditer(text):
+            _record_skill(session, match.group(1))
+
+
+def _record_call(session, name, command, is_error, seq):
+    """Fold one completed tool call into the work ledger."""
+    work = session.work
+    if name in EDIT_TOOLS:
+        if is_error is False:
+            work['edits'] += 1
+            work['last_edit_seq'] = max(work['last_edit_seq'], seq)
+        return
+    if not isinstance(command, str):
+        return
+    checks = matching_checks(command)
+    if checks:
+        work['checks'] += 1
+        if is_error is True:
+            work['checks_failed'] += 1
+        elif is_error is False:
+            work['checks_passed'] += 1
+            work['last_pass_seq'] = max(work['last_pass_seq'], seq)
+            work['distinct_passing'].update(checks)
+    if is_error is False and has_commit(command):
+        work['commits'] += 1
 
 
 def in_window(ts, since=None, until=None):
@@ -125,6 +278,8 @@ def parse_claude(path, since=None, until=None, seen_msgs=None, seen_tool_ids=Non
     project = project_name(relative.parts[0] if relative.parts else path.parent.name)
     s = Session(path.stem, project, 'claude', sub)
     calls = {}
+    call_meta = {}
+    seq = 0
     fresh_calls, result_ids = set(), set()
     pending = []  # [est_tokens, label, turn_index] awaiting carry computation
     first_api_message = True
@@ -148,7 +303,8 @@ def parse_claude(path, since=None, until=None, seen_msgs=None, seen_tool_ids=Non
                 if in_window(parse_ts(boundary.get('timestamp')), since, until):
                     close_segment()
                 continue
-            if '"assistant"' not in line and '"tool_result"' not in line:
+            if ('"assistant"' not in line and '"tool_result"' not in line
+                    and '<command-name>' not in line):
                 continue
             try:
                 o = json.loads(line)
@@ -175,6 +331,13 @@ def parse_claude(path, since=None, until=None, seen_msgs=None, seen_tool_ids=Non
                         fresh_calls.add(call_id)
                         inp = b.get('input') or {}
                         calls[call_id] = tool_label(b.get('name', '?'), inp)
+                        seq += 1
+                        command = inp.get('command') if isinstance(inp, dict) else None
+                        if in_window(ts, since, until):
+                            call_meta[call_id] = (b.get('name') or '?',
+                                                  command if isinstance(command, str) else None, seq)
+                            if b.get('name') == 'Skill' and isinstance(inp, dict):
+                                _record_skill(s, inp.get('skill'))
                         if (in_window(ts, since, until) and b.get('name') == 'Read'
                                 and isinstance(inp.get('file_path'), str)):
                             s.reads[inp['file_path']] += 1
@@ -204,17 +367,48 @@ def parse_claude(path, since=None, until=None, seen_msgs=None, seen_tool_ids=Non
                 if not in_window(parse_ts(o.get('timestamp')), since, until):
                     continue
                 content = msg.get('content')
+                _record_prompt_commands(s, content)
                 for b in content if isinstance(content, list) else []:
                     if isinstance(b, dict) and b.get('type') == 'tool_result':
                         call_id = b.get('tool_use_id')
                         if not call_id or call_id not in fresh_calls or call_id in result_ids:
                             continue
                         result_ids.add(call_id)
+                        meta = call_meta.get(call_id)
+                        if meta:
+                            _record_call(s, meta[0], meta[1], b.get('is_error', False), meta[2])
                         t = est_tokens(b.get('content'))
                         if t:
                             pending.append([t, calls.get(call_id, '?'), s.turns])
+    for call_id, (name, command, index) in call_meta.items():
+        if call_id not in result_ids:
+            _record_call(s, name, command, None, index)
     close_segment()
     return s if s.turns else None
+
+
+def _codex_shell_text(parts):
+    """Codex runs `['/bin/zsh', '-lc', '<script>']`; keep the script, not the wrapper."""
+    if isinstance(parts, list):
+        if len(parts) >= 3 and str(parts[1]) in ('-lc', '-c'):
+            return str(parts[2])
+        return ' '.join(str(part) for part in parts)
+    return parts if isinstance(parts, str) else None
+
+
+def _codex_exec_command(raw):
+    """Codex stores exec input as a JSON string or dict with a command list."""
+    if isinstance(raw, dict):
+        command = raw.get('command')
+    elif isinstance(raw, str):
+        try:
+            command = (json.loads(raw) or {}).get('command')
+        except ValueError:
+            command = None
+    else:
+        command = None
+    return _codex_shell_text(command)
+
 
 
 def parse_codex(path, since=None, until=None, seen_sessions=None):
@@ -222,9 +416,12 @@ def parse_codex(path, since=None, until=None, seen_sessions=None):
     seen_sessions = seen_sessions if seen_sessions is not None else set()
     s = Session(path.stem, '?', 'codex')
     last, model, limits, meta_id = None, None, None, None
+    items, raw_calls, seq = [], [], 0
     with path.open(encoding='utf-8', errors='replace') as f:
         for line in f:
-            if '"token_count"' not in line and '"turn_context"' not in line and '"session_meta"' not in line[:200]:
+            if ('"token_count"' not in line and '"turn_context"' not in line
+                    and '"session_meta"' not in line[:200] and '"item_completed"' not in line
+                    and '"custom_tool_call"' not in line and '"function_call"' not in line):
                 continue
             try:
                 o = json.loads(line)
@@ -237,6 +434,29 @@ def parse_codex(path, since=None, until=None, seen_sessions=None):
                 s.start = parse_ts(p.get('timestamp') or o.get('timestamp'))
             elif o.get('type') == 'turn_context':
                 model = p.get('model') or model
+            elif o.get('type') == 'event_msg' and p.get('type') == 'item_completed':
+                item = p.get('item') or {}
+                kind, status = item.get('type'), item.get('status')
+                seq += 1
+                if kind == 'FileChange':
+                    items.append(('Write', None, None if status is None else status != 'completed', seq))
+                elif kind == 'CommandExecution':
+                    command = _codex_shell_text(item.get('command'))
+                    code = item.get('exit_code')
+                    if isinstance(code, int):
+                        error = code != 0
+                    else:
+                        error = None if status is None else status == 'failed'
+                    items.append(('Bash', command if isinstance(command, str) else None, error, seq))
+            elif o.get('type') == 'response_item' and p.get('type') in ('custom_tool_call', 'function_call'):
+                name = p.get('name') or ''
+                status = p.get('status')
+                error = None if status is None else status == 'failed'
+                seq += 1
+                if name == 'apply_patch':
+                    raw_calls.append(('Write', None, error, seq))
+                elif name == 'exec':
+                    raw_calls.append(('Bash', _codex_exec_command(p.get('input')), error, seq))
             elif p.get('type') == 'token_count' and p.get('info'):
                 last = p['info']
                 limits = p.get('rate_limits') or limits
@@ -245,6 +465,8 @@ def parse_codex(path, since=None, until=None, seen_sessions=None):
                     s.models[model] += 1
     if not last or not in_window(s.start, since, until):
         return None
+    for name, command, error, index in items or raw_calls:
+        _record_call(s, name, command, error, index)
     if meta_id and meta_id in seen_sessions:
         return None
     if meta_id:
@@ -306,6 +528,69 @@ def fmt(n):
 
 def pct(a, b):
     return f'{100 * a / b:.0f}%' if b else '—'
+
+
+def skill_usage(sessions):
+    """Aggregate skill invocations: bare names, and plugin-scoped ids kept separately."""
+    skills, plugin = Counter(), Counter()
+    for s in sessions:
+        skills.update(s.skills)
+        plugin.update(s.plugin_skills)
+    return dict(skills.most_common()), dict(plugin.most_common())
+
+
+def work_summary(sessions):
+    """Aggregate the work ledger. Counts come from tool calls, so they are proxies."""
+    raw = Counter()
+    verified = unverified = distinct = 0
+    weighted = 0.0
+    model_units = defaultdict(float)
+    for s in sessions:
+        work = s.work
+        for key in ('edits', 'checks', 'checks_passed', 'checks_failed', 'commits'):
+            raw[key] += work[key]
+        distinct += len(work['distinct_passing'])
+        weighted += s.weighted()
+        if work['edits']:
+            if s.verified_edit():
+                verified += 1
+            else:
+                unverified += 1
+        turns = sum(s.models.values())
+        if turns:
+            for model, count in s.models.items():
+                model_units[model] += s.weighted() * count / turns
+    patterns = _tier_patterns()
+    mix = Counter()
+    unknown = []
+    for model, units in model_units.items():
+        tier = model_tier(model, patterns)
+        mix[tier] += units
+        if tier == 'unknown':
+            unknown.append(model)
+    total_mix = sum(mix.values())
+    passing, failed = raw['checks_passed'], raw['checks_failed']
+    decided = passing + failed
+    edit_sessions = verified + unverified
+    return {
+        'edits': raw['edits'],
+        'checks': raw['checks'],
+        'checks_passed': passing,
+        'checks_failed': failed,
+        'commits': raw['commits'],
+        'distinct_passing_checks': distinct,
+        'verified_edit_sessions': verified,
+        'unverified_edit_sessions': unverified,
+        'weighted_units': round(weighted),
+        'usage_per_passing_check': round(weighted / passing) if passing else None,
+        'usage_per_distinct_passing_check': round(weighted / distinct) if distinct else None,
+        'rework_rate': round(failed / decided, 4) if decided else None,
+        'verified_edit_share': round(verified / edit_sessions, 4) if edit_sessions else None,
+        'premium_share': round(mix['premium'] / total_mix, 4) if total_mix else None,
+        'model_mix': {tier: round(mix[tier] / total_mix, 4)
+                      for tier in ('premium', 'standard', 'economy', 'unknown')} if total_mix else {},
+        'unknown_models': sorted(unknown)[:10],
+    }
 
 
 def summarize(sessions, top=10):
@@ -379,6 +664,8 @@ def summarize(sessions, top=10):
                            'cache_hit_rate': round(ct['cache_read'] / cprompt, 4) if cprompt else None,
                            'models': dict(cm.most_common(top)),
                            'latest_rate_limits': latest.baseline if latest else None}
+    report['work'] = work_summary(sessions)
+    report['skills_used'], report['skills_used_plugin'] = skill_usage(sessions)
     report['findings'] = findings(report)
     return report
 
@@ -417,6 +704,17 @@ def findings(r):
     if c['subagent_weighted_share'] > 0.4:
         out.append(f"Subagents consume {pct(c['subagent_weighted_share'], 1)} of weighted cost. Each cold start re-pays the "
                    'system prompt; delegate only work that is large and independent.')
+    work = r.get('work') or {}
+    rework = work.get('rework_rate')
+    if rework is not None and rework > 0.25:
+        out.append(f'{pct(rework, 1)} of counted checks failed ({work["checks_failed"]} of '
+                   f'{work["checks_passed"] + work["checks_failed"]}). Failed checks are being paid for twice — '
+                   'tighten the brief and run targeted checks first.')
+    edited = work.get('verified_edit_share')
+    if edited is not None and edited < 0.5:
+        out.append(f'Only {pct(edited, 1)} of editing sessions ran a passing check after their last edit '
+                   f'({work["unverified_edit_sessions"]} of {work["verified_edit_sessions"] + work["unverified_edit_sessions"]}). '
+                   'Edits often end without a passing check.')
     return out or ['No major waste pattern crossed the thresholds. Measure again after workflow changes.']
 
 
@@ -434,6 +732,26 @@ def print_report(r, since_label):
         sc = c['starting_context']
         say(f"  starting context per session: median {fmt(sc['median'] or 0)}, p90 {fmt(sc['p90'] or 0)}, max {fmt(sc['max'] or 0)}")
         say(f"  cache rebuilds: {c['cache_rebuilds']['count']} ({fmt(c['cache_rebuilds']['tokens'])} tokens)\n")
+        w = r.get('work') or {}
+        say('Work (proxy — counted from tool calls, not a quality judgement)')
+        say(f"  edits {w['edits']} · checks {w['checks']} ({w['checks_passed']} passed, "
+            f"{w['checks_failed']} failed) · commits {w['commits']}")
+        decisions = w['checks_passed'] + w['checks_failed']
+        rework = pct(w['rework_rate'], 1) if decisions else '—'
+        edited = w['verified_edit_sessions'] + w['unverified_edit_sessions']
+        share = (f"{w['verified_edit_sessions']}/{edited} ({pct(w['verified_edit_share'], 1)})"
+                 if edited else '—')
+        say(f'  rework rate {rework} · verified-edit sessions {share}')
+        per_check = (f"{fmt(w['usage_per_passing_check'])} units"
+                     if w['usage_per_passing_check'] is not None else 'n/a (no passing checks)')
+        say(f'  usage per passing check {per_check}')
+        mix = w.get('model_mix') or {}
+        if mix:
+            tiers = [tier for tier in ('premium', 'standard', 'economy') if mix.get(tier)]
+            if mix.get('unknown'):
+                tiers.append('unknown')
+            say('  model mix: ' + ' · '.join(f'{tier} {pct(mix.get(tier, 0), 1)}' for tier in tiers))
+        say('')
         sections = [
             ('By model (weighted units)', [f"{m:<28} {fmt(v['weighted_units']):>8}  {v['turns']} turns" for m, v in c['by_model'].items()]),
             ('By project (weighted units)', [f'{p:<40} {fmt(w):>8}' for p, w in c['by_project'].items()]),
@@ -480,12 +798,33 @@ COMPARE_METRICS = (
     ('output_tokens_per_turn', 'Output tokens / turn'),
 )
 
+# (key, label, direction) — direction is 'lower', 'higher' or 'neutral'.
+WORK_COMPARE_METRICS = (
+    ('usage_per_passing_check', 'Usage / passing check', 'lower'),
+    ('rework_rate', 'Rework rate', 'lower'),
+    ('verified_edit_share', 'Verified-edit share', 'higher'),
+    ('premium_share', 'Premium share', 'neutral'),
+)
+WORK_COMPARE_KEYS = tuple(key for key, _, _ in WORK_COMPARE_METRICS)
+
 
 def compare_metrics(report):
     c = report['claude']
     turns = c['api_turns']
+    work = report.get('work') or {}
+    passing = work.get('checks_passed') or 0
+    decided = passing + (work.get('checks_failed') or 0)
+    edited = (work.get('verified_edit_sessions') or 0) + (work.get('unverified_edit_sessions') or 0)
+    # Below five passing checks the ratio is noise, so it is reported as unavailable.
+    enough = passing >= 5
+    work_values = {
+        'usage_per_passing_check': work.get('usage_per_passing_check') if enough else None,
+        'rework_rate': round((work.get('checks_failed') or 0) / decided, 4) if enough and decided else None,
+        'verified_edit_share': round((work.get('verified_edit_sessions') or 0) / edited, 4) if edited else None,
+        'premium_share': work.get('premium_share'),
+    }
     if not turns:
-        return {'api_turns': 0, **{key: None for key, _ in COMPARE_METRICS}}
+        return {'api_turns': 0, **{key: None for key, _ in COMPARE_METRICS}, **work_values}
     tokens = c['tokens']
     weighted = sum(tokens.get(key, 0) * weight for key, weight in WEIGHTS.items())
     values = {
@@ -497,14 +836,14 @@ def compare_metrics(report):
         'output_tokens_per_turn': tokens.get('output', 0) / turns,
     }
     return {'api_turns': turns, **{key: round(value, 4) if value is not None else None
-                                   for key, value in values.items()}}
+                                   for key, value in values.items()}, **work_values}
 
 
 def build_comparison(current, previous):
     current_values = compare_metrics(current)
     previous_values = compare_metrics(previous)
     delta = {'api_turns': current_values['api_turns'] - previous_values['api_turns']}
-    for key, _ in COMPARE_METRICS:
+    for key, _ in COMPARE_METRICS + tuple((key, label) for key, label, _ in WORK_COMPARE_METRICS):
         now, before = current_values[key], previous_values[key]
         delta[key] = round(now - before, 4) if now is not None and before is not None else None
     return {'current': current_values, 'previous': previous_values, 'delta': delta}
@@ -539,6 +878,28 @@ def print_comparison(data):
                 direction = 'better' if better else 'worse'
         suffix = f' · {direction}' if direction else ''
         print(f'  {label}: {values[0]} current · {values[1]} previous · delta {values[2]}{change}{suffix}')
+    for key, label, direction in WORK_COMPARE_METRICS:
+        current, previous, delta = (data[period].get(key) for period in ('current', 'previous', 'delta'))
+        if key == 'usage_per_passing_check':
+            values = (fmt(current) if current is not None else None,
+                      fmt(previous) if previous is not None else None,
+                      ('+' if delta >= 0 else '-') + fmt(abs(delta)) if delta is not None else None)
+        else:
+            values = (f'{current * 100:.0f}%' if current is not None else None,
+                      f'{previous * 100:.0f}%' if previous is not None else None,
+                      f'{delta * 100:+.0f} pp' if delta is not None else None)
+        missing = ('n/a (too few checks)' if key in ('usage_per_passing_check', 'rework_rate')
+                   else 'n/a')
+        current_text, previous_text, delta_text = (value if value is not None else missing for value in values)
+        change = f' ({delta / previous:+.0%})' if delta is not None and previous else ''
+        suffix = ''
+        if delta is not None and direction != 'neutral':
+            if delta == 0:
+                suffix = ' · unchanged'
+            else:
+                better = delta < 0 if direction == 'lower' else delta > 0
+                suffix = ' · better' if better else ' · worse'
+        print(f'  {label}: {current_text} current · {previous_text} previous · delta {delta_text}{change}{suffix}')
 
 
 def parse_since(text, now=None):

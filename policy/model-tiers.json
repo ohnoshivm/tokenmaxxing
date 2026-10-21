@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "research_date": "2026-10-21",
+  "note": "Heuristic price tiers for the audit model mix. Patterns are case-insensitive regexes matched against the model id; first match wins. A premium share is information, not a quality verdict.",
+  "tiers": [
+    {"pattern": "opus", "tier": "premium"},
+    {"pattern": "sol", "tier": "premium"},
+    {"pattern": "sonnet", "tier": "standard"},
+    {"pattern": "luna", "tier": "standard"},
+    {"pattern": "haiku", "tier": "economy"},
+    {"pattern": "deepseek", "tier": "economy"},
+    {"pattern": "flash", "tier": "economy"}
+  ]
+}
