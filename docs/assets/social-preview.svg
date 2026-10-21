@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-labelledby="title desc">
+  <title id="title">TOKENMAXXING — verified work per unit of usage</title>
+  <desc id="desc">Spend less usage. Ship more verified work. A precision meter and four-step method: Measure, Fix, Guard, Prove.</desc>
+  <rect width="1280" height="640" fill="#0B0D10"/>
+  <rect x="48" y="48" width="1184" height="544" rx="10" fill="none" stroke="#252B32"/>
+
+  <g fill="#E8E6E1" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
+    <text x="128" y="276" font-size="72" font-weight="760" letter-spacing="-3.2">TOKENMAXXING</text>
+  </g>
+  <text x="134" y="342" fill="#8A8F98" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="27" letter-spacing="-0.35">Spend less usage. Ship more verified work.</text>
+
+  <g transform="translate(1005 284)" fill="none" stroke-linecap="round">
+    <circle r="150" stroke="#252B32" stroke-width="2"/>
+    <circle r="131" stroke="#1B2026" stroke-width="1"/>
+    <path d="M-106 106A150 150 0 0 1 106-106" stroke="#434B54" stroke-width="2" stroke-dasharray="2 14"/>
+    <path d="M-91 91A131 131 0 0 1 20-129" stroke="#3DDC84" stroke-width="3"/>
+    <path d="M0 0 47-80" stroke="#E8E6E1" stroke-width="2"/>
+    <circle r="8" fill="#3DDC84" stroke="#0B0D10" stroke-width="3"/>
+  </g>
+
+  <path d="M128 464h1024" stroke="#30363D"/>
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="18">
+    <text x="128" y="518" fill="#C6C8CC">Measure</text>
+    <text x="410" y="518" fill="#C6C8CC">Fix</text>
+    <text x="692" y="518" fill="#C6C8CC">Guard</text>
+    <text x="974" y="518" fill="#3DDC84">Prove</text>
+  </g>
+  <g fill="#69717C">
+    <circle cx="128" cy="558" r="3"/>
+    <circle cx="410" cy="558" r="3"/>
+    <circle cx="692" cy="558" r="3"/>
+    <circle cx="974" cy="558" r="3"/>
+  </g>
+</svg>

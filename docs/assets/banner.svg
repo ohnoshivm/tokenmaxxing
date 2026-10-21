@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="360" viewBox="0 0 1280 360" role="img" aria-labelledby="title desc">
+  <title id="title">TOKENMAXXING</title>
+  <desc id="desc">Spend less usage. Ship more verified work. A precision gauge marks the balance.</desc>
+  <rect width="1280" height="360" fill="#0B0D10"/>
+  <path d="M72 42h1136v276H72z" fill="none" stroke="#242A31" stroke-width="1"/>
+
+  <g fill="#E8E6E1" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
+    <text x="112" y="151" font-size="58" font-weight="760" letter-spacing="-2.8">TOKENMAXXING</text>
+  </g>
+  <text x="116" y="207" fill="#8A8F98" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="24" font-weight="450" letter-spacing="-0.25">Spend less usage. Ship more verified work.</text>
+
+  <g transform="translate(1000 180)" fill="none" stroke-linecap="round">
+    <circle r="122" stroke="#252B32" stroke-width="2"/>
+    <circle r="105" stroke="#1B2026" stroke-width="1"/>
+    <path d="M-86 86A122 122 0 0 1 86-86" stroke="#434B54" stroke-width="2" stroke-dasharray="2 12"/>
+    <path d="M-74 74A105 105 0 0 1 16-104" stroke="#3DDC84" stroke-width="3"/>
+    <path d="M0 0 39-67" stroke="#E8E6E1" stroke-width="2"/>
+    <circle r="7" fill="#3DDC84" stroke="#0B0D10" stroke-width="3"/>
+  </g>
+</svg>

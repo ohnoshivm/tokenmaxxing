@@ -784,14 +784,14 @@ The numbered sources below are authoritative starting points; figures in the bod
 
 | File | Purpose |
 |---|---|
-| `README.md` | This long-form research paper |
+| `README.md` | Product overview and quickstart ([current README](../README.md)) |
 | `AGENTS.md` | Concise portable project-level operating instructions |
 | `policy/routing-policy.yaml` | Explicit declarative *reference* routing policy (not native T3 config) |
 | `templates/TASK_BRIEF.md` | Planning and delegation contract |
 | `templates/HANDOFF.md` | Portable context for another model/provider |
 | `templates/REVIEW.md` | Evidence-based reviewer decision |
 | `evaluation/scorecard.csv` | Blank template for measuring actual runs |
-| `QUICK_START.md` | Safe manual setup and verification workflow |
+| `docs/quick-start.md` | Safe manual setup and verification workflow |
 | `social/LINKEDIN_POST.md` | Publishable article announcement |
 | `social/X_THREAD.md` | Short social thread |
 | `social/GITHUB_DESCRIPTION.md` | Repository short description and release blurb |
