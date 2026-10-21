@@ -221,7 +221,7 @@ def load_subcommand(name):
 
 def main(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
-    module_names = ('audit', 'doctor', 'statusline', 'fix')
+    module_names = ('audit', 'doctor', 'statusline', 'fix', 'guard')
     selected_module = None
     if argv and argv[0] in module_names:
         selected_module = load_subcommand(argv[0])
@@ -242,7 +242,8 @@ def main(argv=None):
             ('audit', 'Measure token spend from local agent session logs'),
             ('doctor', 'Inspect local agent configuration and context overhead'),
             ('statusline', 'Show a compact live usage statusline'),
-            ('fix', 'Move unused skills out of context, reversibly (dry run by default)')):
+            ('fix', 'Move unused skills out of context, reversibly (dry run by default)'),
+            ('guard', 'Opt-in hook that warns once when the prompt cache is cold')):
         cmd = subs.add_parser(name, help=help_text)
         if name == (argv[0] if argv else None) and selected_module is not None:
             selected_module.add_arguments(cmd)
