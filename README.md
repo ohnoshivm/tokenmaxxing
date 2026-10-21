@@ -50,6 +50,7 @@ Run these commands from the repository checkout with `python3 tokenmaxxing.py`.
 | `fix` | Plan reversible skill moves. | No by default; `--apply` moves files. |
 | `guard` | Opt-in cold-cache prompt hold. | Marker files only when active. |
 | `statusline` | Show context and cache status. | No; `--install` prints a snippet. |
+| `quota` | Track distinct subscription pools, import verified resets and optionally activate eligible first-request windows. | Setup writes private config; checks write private state. | 
 | `reset` | Configure reset windows and inspect notifications. | Setup writes config; live checks write state. |
 | `install` | Install the skill and stage eight pinned sources. | Yes; may fetch unless `--no-fetch` is used. |
 | `status` | Inspect staged sources and the installed skill. | No. |
@@ -74,12 +75,27 @@ are explicit and their effects are listed above.
 - Reset notifications are inactive until configured. Provider dispatch
   requires an explicit opt-in and a verified account-specific command.
 
+## Provider quota activation — first-class feature
+
+TOKENMAXXING now includes a **provider-aware quota scheduler** for session, weekly and model-specific windows. It distinguishes fixed clocks from first-request activation, isolates accounts and pools, prevents duplicate prompts, and uses **provider-confirmed reset times**. It defaults to notification-only and never sends a model request without separate per-account and runtime opt-in. No T3 private API or automatic provider polling is claimed.
+
+```bash
+python3 tokenmaxxing.py quota setup
+# Replace example values in ~/.config/tokenmaxxing/quota-windows.json.
+python3 tokenmaxxing.py quota status
+python3 tokenmaxxing.py quota check --dry-run
+python3 tokenmaxxing.py quota check
+```
+
+See [Quota Activation Engine](docs/quota-engine.md) and [quota safety policy](policy/quota-activation.md). **macOS scheduling is optional, and the Mac must be awake.** Sending a short `yo` costs some usage and can shorten future flexibility; choose activation only if your subscription model and work schedule justify it.
+
 ## Operating pillars
 
 - **Delegation:** task-fit guidance, handoffs and verification live in the
   [routing policy](policy/routing-policy.yaml) and
   [delegation research](research/delegation-paper-2026.md). The policy is
   reference material; it does not configure automatic routing.
+- **Quota availability:** manage provider-confirmed reset windows safely with the [Quota Activation Engine](docs/quota-engine.md) and [activation policy](policy/quota-activation.md); first-request activation is explicitly opt-in.
 - **Usage efficiency:** measure cache, setup overhead and work, then compare
   equal windows using the [token-efficiency policy](policy/token-efficiency.md)
   and [measurement notes](docs/measurement.md).
@@ -100,6 +116,7 @@ are explicit and their effects are listed above.
 - [Reversible cleanup](docs/fix.md) — dry run, archive manifest and undo.
 - [Cold-cache guard](docs/guard.md) — hook behavior, setup and safety.
 - [Status line](docs/statusline.md) — context and cache display, install snippet and limits.
+- [Provider Quota Activation Engine](docs/quota-engine.md) — account/pool tracking, verified snapshots, notifications and safe activation.
 - [Reset windows](docs/reset-activation.md) — inactive setup, notifications and
   explicit dispatch rules.
 - [Optimizer profiles](docs/optimizer-profiles.md) — controlled comparison and

@@ -172,6 +172,38 @@ def setup_reset_config(*, dest=None, dry_run=False):
     return 'created'
 
 
+
+def run_quota_action(args):
+    """Launch isolated quota watcher; no provider auth or T3 configuration changes."""
+    script = ROOT / 'scripts' / 'quota_engine.py'
+    if args.quota_action == 'install-macos':
+        if args.config is not None:
+            say('macOS LaunchAgent uses default quota config; omit --config')
+            return 2
+        if args.dry_run:
+            say(f'[plan] macOS quota LaunchAgent (activation={bool(args.enable_activation)})')
+            return 0
+        if not (home_dir()/'.config'/'tokenmaxxing'/'quota-windows.json').is_file():
+            say('Configure quota windows first: python3 tokenmaxxing.py quota setup')
+            return 2
+        cmd = ['bash', str(ROOT/'scripts'/'install-quota-macos.sh')]
+        if args.enable_activation:
+            cmd.append('--enable-activation')
+        return subprocess.call(cmd)
+    cmd = [sys.executable, str(script), args.quota_action]
+    for flag, value in (('--config',args.config),('--state',args.state),
+                        ('--log',args.log),('--snapshot',args.snapshot),
+                        ('--account',args.account),('--window',args.window),
+                        ('--next-reset',args.next_reset),('--poll-seconds',args.poll_seconds)):
+        if value is not None:
+            cmd.extend([flag,str(value)])
+    for flag, enabled in (('--allow-dispatch',args.allow_dispatch),
+                          ('--dry-run',args.dry_run),('--quiet',args.quiet)):
+        if enabled:
+            cmd.append(flag)
+    # Executed without a shell or any credential/routing modifications.
+    return subprocess.call(cmd)
+
 def run_reset_action(args):
     config = args.config or reset_config_path()
     if args.reset_action == 'setup':
@@ -228,7 +260,7 @@ def main(argv=None):
         if selected_module is None:
             return 2
     p=argparse.ArgumentParser(prog='tokenmaxxing',description='Pinned optimizer toolkit and portable token-efficient agent skill')
-    p.add_argument('--version', action='version', version='tokenmaxxing 2.0.0')
+    p.add_argument('--version', action='version', version='tokenmaxxing 2.1.0')
     subs=p.add_subparsers(dest='action',required=True)
     install=subs.add_parser('install',help='Stage pinned upstream repos and install one reusable token-efficiency skill')
     install.add_argument('--scope',choices=('user','project'),default='user')
@@ -250,6 +282,20 @@ def main(argv=None):
     pp=subs.add_parser('profiles',help='List available profiles')
     plugin=subs.add_parser('plugin-commands',help='Show upstream native plugin commands; never executes them')
     plugin.add_argument('id',choices=[t['id'] for t in registry()])
+    quota=subs.add_parser('quota',help='Per-account quota windows, safe notifications, and opt-in reset activation')
+    quota.add_argument('quota_action',nargs='?',choices=('setup','status','check','watch','sync','confirm','install-macos'),default='status')
+    quota.add_argument('--config',type=Path,help='Quota window config path')
+    quota.add_argument('--state',type=Path,help='Persisted deduplication state')
+    quota.add_argument('--log',type=Path,help='Event log file')
+    quota.add_argument('--snapshot',type=Path,help='User-provided normalized provider quota snapshot')
+    quota.add_argument('--allow-dispatch',action='store_true',help='Explicit provider CLI opt-in; disabled by default')
+    quota.add_argument('--enable-activation',action='store_true',help='Explicit macOS unattended activation opt-in')
+    quota.add_argument('--dry-run',action='store_true')
+    quota.add_argument('--quiet',action='store_true')
+    quota.add_argument('--account',help='Account ID')
+    quota.add_argument('--window',help='Quota pool/window ID')
+    quota.add_argument('--next-reset',help='Provider-confirmed next reset ISO date/time')
+    quota.add_argument('--poll-seconds',type=int,help='Polling seconds: minimum 60')
     reset=subs.add_parser('reset',help='First-class reset window feature: setup, status, check, watch, ack, install-macos')
     reset.add_argument('reset_action',nargs='?',choices=('setup','status','check','watch','ack','install-macos'),default='status')
     reset.add_argument('--config',type=Path,help='Reset watcher configuration path')
@@ -263,6 +309,7 @@ def main(argv=None):
     args=p.parse_args(argv)
     if args.action in module_names:
         return selected_module.run(args)
+    if args.action=='quota':return run_quota_action(args)
     if args.action=='reset':return run_reset_action(args)
     if args.action=='status':status();return 0
     if args.action=='profiles':

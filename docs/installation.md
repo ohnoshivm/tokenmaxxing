@@ -1,5 +1,10 @@
 # Installation and verification
 
+## Quota Activation Engine (v2, recommended)
+
+From the checkout, run `python3 tokenmaxxing.py quota setup` to create a private sample configuration; edit it with verified provider identities and real reset timestamps. Then use `python3 tokenmaxxing.py quota check --dry-run` and `quota status`. Optional `python3 tokenmaxxing.py quota install-macos` enables notification-only periodic checks on macOS. See [complete operator guide](quota-engine.md). The earlier `reset` engine is still supported.
+
+
 ## Measure before changing your setup
 
 From the repository directory, run the local read-only tools:

@@ -1,6 +1,8 @@
-# Reset Activation Engine
+# Reset Activation Engine (legacy compatibility)
 
 **TOKENMAXXING — Shivam Kumawat (@ohnoshivm) · AgentKind Labs**
+
+> **New:** Use the more capable [Provider Quota Activation Engine](quota-engine.md), including separate model/session/weekly pools, confirmed resets and safe one-shot dispatch. The earlier `tokenmaxxing.py reset` command remains for compatibility.
 
 This optional module watches known subscription allowance reset times and helps you begin a **new activity-anchored window** promptly with the cheapest supported subscription-backed model. Its default action is a macOS notification, **not a model call**.
 

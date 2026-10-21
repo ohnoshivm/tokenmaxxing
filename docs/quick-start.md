@@ -16,7 +16,20 @@ python3 tokenmaxxing.py statusline --install
 
 `audit` reads local Claude Code transcript and Codex rollout usage offline; `doctor` inspects always-loaded context and optimizer stacking. Both are read-only. `fix` moves unused skills into a dated archive with a manifest (`--undo` restores; nothing is deleted). `guard --print-hook` and `statusline --install` print a Claude Code settings snippet and never write it. After making a change, compare equal windows with `python3 tokenmaxxing.py audit --since 7d --compare`. See [fix](fix.md), [guard](guard.md) and [statusline setup](statusline.md).
 
-## Reset-window activation — integrated feature
+## Provider quota tracking and activation (recommended)
+
+```bash
+python3 tokenmaxxing.py quota setup
+# Replace ALL sample account IDs, reset dates and eligible pools.
+python3 tokenmaxxing.py quota status
+python3 tokenmaxxing.py quota check --dry-run
+python3 tokenmaxxing.py quota check
+# On macOS only, opt into notifications: python3 tokenmaxxing.py quota install-macos
+```
+
+The `quota` engine supports independent session, weekly and model pools, verified usage snapshots and pending/confirmed activation states. No provider is contacted by default. Review [full quota guide](quota-engine.md). The older `reset` command remains for compatibility.
+
+## Reset-window activation (legacy) — integrated feature
 
 ```bash
 python3 tokenmaxxing.py reset setup

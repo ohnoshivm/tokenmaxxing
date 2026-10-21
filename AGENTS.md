@@ -5,6 +5,10 @@
 This file describes **policy**, not automatic model switching. Use only models, effort settings, tools, subscriptions and delegation mechanisms actually supported and authorized in the current environment. Do not change authentication, provider routes, billing or destructive permissions without approval.
 
 
+## Provider-aware quota activation (primary)
+
+Use `tokenmaxxing.py quota` for independent session, weekly and model-specific pools. Read [quota activation policy](policy/quota-activation.md). Default to local notifications and demand explicit per-account/per-pool approval plus runtime opt-in before provider CLI activation. Do not infer timer restarts from exit status; verify provider displays or supplied normalized snapshots. Keep the legacy `reset` CLI available for existing installations.
+
 ## Usage-reset activation (third primary pillar)
 
 This feature is accessible through `python3 tokenmaxxing.py reset {setup,status,check,watch,ack,install-macos}`, with `check --dry-run` recommended before any scheduled monitoring. The normal installer can create an **inactive** config with `--with-reset-config`. Do not silently dispatch provider requests or claim T3 native integration.

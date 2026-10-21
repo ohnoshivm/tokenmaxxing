@@ -95,6 +95,7 @@ def validate(cfg):
     if cfg.get('version') != 2 or not isinstance(cfg.get('accounts'), list):
         raise ValueError('Expected {"version":2,"accounts":[...]}')
     seen = set()
+    seen_instances = set()
     for a in cfg['accounts']:
         if not isinstance(a, dict):
             raise ValueError('Account must be an object')
@@ -106,6 +107,10 @@ def validate(cfg):
             raise ValueError(aid+': unsupported provider')
         if not isinstance(a.get('instance_id'), str) or not a['instance_id'].strip():
             raise ValueError(aid+': require a stable T3/provider instance_id')
+        identity = (a['provider'], a['instance_id'])
+        if identity in seen_instances:
+            raise ValueError(aid+': duplicate provider instance; accounts must not collide')
+        seen_instances.add(identity)
         wins = a.get('windows')
         if not isinstance(wins, list) or not wins:
             raise ValueError(aid+': require windows')
@@ -141,6 +146,16 @@ def validate(cfg):
                 raise ValueError(aid+': confirmed_instance_id must match account instance_id')
             if not d.get('subscription_verified', False):
                 raise ValueError(aid+': explicitly verify subscription mode before command dispatch')
+            eligible = d.get('eligible_windows')
+            if (not isinstance(eligible, list) or not eligible or
+                    any(not isinstance(i, str) or i not in winids for i in eligible) or
+                    len(eligible) != len(set(eligible))):
+                raise ValueError(aid+': command mode requires distinct eligible_windows IDs')
+            first_request_ids = {w['id'] for w in wins if w['semantics'] == 'first_request'}
+            if not set(eligible).issubset(first_request_ids):
+                raise ValueError(aid+': only verified first_request windows can be eligible')
+            if not isinstance(d.get('verified_model_id'), str) or not d['verified_model_id'].strip():
+                raise ValueError(aid+': require verified_model_id for this quota pool')
         grace = d.get('grace_seconds', 90)
         if not isinstance(grace, int) or not (1 <= grace <= 3600):
             raise ValueError(aid+': grace_seconds must be between 1 and 3600')
@@ -254,7 +269,9 @@ def check(cfg,state,now,*,allow_dispatch=False,dry_run=False,quiet=False,runner=
             status='unverified-window-no-request'
         elif mode=='command':
             lag=(now-due).total_seconds()
-            if not allow_dispatch:
+            if w['id'] not in a['activation']['eligible_windows']:
+                status='window-not-authorized-for-activation'
+            elif not allow_dispatch:
                 status='explicit-dispatch-required'
             elif lag>a['activation'].get('grace_seconds',90):
                 status='missed-activation-window'

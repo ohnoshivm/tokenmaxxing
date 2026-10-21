@@ -20,7 +20,8 @@ def cfg(mode='notify', semantics='first_request', window='session'):
     if semantics!='first_request':a['windows'][0].pop('window_hours')
     if mode=='command':
         a['activation'].update({'argv':['fake-cli','--model','cheap','yo'],
-            'confirmed_instance_id':'t3-codex-001','subscription_verified':True})
+            'confirmed_instance_id':'t3-codex-001','subscription_verified':True,
+            'eligible_windows':[window], 'verified_model_id':'cheap'})
     return {'version':2,'accounts':[a]}
 
 class Tests(unittest.TestCase):
@@ -111,6 +112,7 @@ class ExtraTests(unittest.TestCase):
         c=cfg('command');c['accounts'][0]['windows'].append({
             'id':'weekly','kind':'weekly','semantics':'first_request',
             'next_reset_at':q.stamp(NOW),'window_hours':168})
+        c['accounts'][0]['activation']['eligible_windows'].append('weekly')
         class Result:returncode=0
         calls=[]
         def runner(*a,**k):calls.append(1);return Result()
@@ -118,3 +120,36 @@ class ExtraTests(unittest.TestCase):
         r=q.check(c,st,NOW,allow_dispatch=True,runner=runner,quiet=True)
         self.assertEqual(len(calls),1)
         self.assertEqual({x['status'] for x in r}, {'sent-pending-verification','shared-activation-already-sent'})
+
+class SafetyTests(unittest.TestCase):
+    def test_duplicate_provider_instance_rejected(self):
+        c=cfg();other=dict(c['accounts'][0]);other['id']='second';c['accounts'].append(other)
+        with self.assertRaisesRegex(ValueError,'duplicate provider instance'):
+            q.validate(c)
+
+    def test_command_requires_verified_pool_and_model(self):
+        c=cfg('command');del c['accounts'][0]['activation']['verified_model_id']
+        with self.assertRaisesRegex(ValueError,'verified_model_id'):q.validate(c)
+        c=cfg('command');c['accounts'][0]['activation']['eligible_windows']=['missing']
+        with self.assertRaisesRegex(ValueError,'eligible_windows'):q.validate(c)
+        c=cfg('command');c['accounts'][0]['windows'][0]['semantics']='unverified'
+        with self.assertRaisesRegex(ValueError,'first_request'):q.validate(c)
+
+    def test_unrelated_model_pool_never_dispatched(self):
+        c=cfg('command');c['accounts'][0]['windows'].append({
+            'id':'model-opus','kind':'model','semantics':'first_request',
+            'next_reset_at':q.stamp(NOW),'window_hours':5})
+        class Result:returncode=0
+        calls=[]
+        def runner(*args,**kwargs):calls.append(1);return Result()
+        out=q.check(c,{},NOW,allow_dispatch=True,quiet=True,runner=runner)
+        self.assertEqual(len(calls),1)
+        self.assertEqual({x['window']:x['status'] for x in out}['model-opus'],
+                         'window-not-authorized-for-activation')
+
+    def test_eligible_windows_cannot_target_fixed_weekly(self):
+        c=cfg('command');c['accounts'][0]['windows'].append({
+            'id':'weekly','kind':'weekly','semantics':'fixed',
+            'next_reset_at':q.stamp(NOW),'repeat_days':7})
+        c['accounts'][0]['activation']['eligible_windows'].append('weekly')
+        with self.assertRaisesRegex(ValueError,'first_request'):q.validate(c)

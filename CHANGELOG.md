@@ -2,6 +2,15 @@
 
 **Created by [Shivam Kumawat](https://github.com/ohnoshivm) (@ohnoshivm) · AgentKind Labs**
 
+## 2.1.0 — 2026-10-21
+
+- Added **Provider Quota Activation Engine v2** via `python3 tokenmaxxing.py quota` while preserving existing `reset` commands.
+- Added account/instance identities and independent session, weekly, model and custom quota pools with timezone-aware timestamps.
+- Added explicit per-pool activation authorization, no-ping fixed/unknown windows, shared-window deduplication and crash-safe reservations.
+- Added a manual normalized usage-snapshot importer; successful provider CLI exit only means sent, **pending verification**.
+- Added optional minute-interval macOS LaunchAgent and clear opt-in for unattended provider CLI requests.
+- Added zero-network offline unit and CLI integration tests. No provider requests, account sign-ins, app settings, billing or T3 configuration were modified as part of publication.
+
 ## 2.0.0 — 2026-10-21
 
 - Added the **work ledger** to `audit`: edits, checks (passed/failed), commits, rework rate, verified-edit sessions, usage per passing check and premium/standard/economy model mix, counted from tool calls as a proxy. New `work` and `skills_used` JSON keys; `audit --compare` gained four rows. Skill usage now includes slash commands, so `fix` will not archive skills invoked by hand.

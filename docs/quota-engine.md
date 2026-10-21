@@ -46,7 +46,7 @@ The importer rejects unrecognized instance IDs, requires timezone-aware dates, n
 ## Auto-activation: only after explicit per-account authorisation
 
 1. Confirm the provider actually starts this particular allowance timer on its first request. For OpenAI's normal five-hour Work/Codex allowance, this behaviour is documented. Do **not** classify Claude or other pools as first-request-anchored based on guesswork. Ordinary fixed weekly resets need no message.
-2. Confirm the correct subscription-backed account or T3 provider instance, your provider CLI's supported noninteractive syntax, and the least resource-consuming **eligible** model. The tool does not auto-rank prices or silently choose another provider.
+2. Confirm the correct subscription-backed account or T3 provider instance, your provider CLI's supported noninteractive syntax, and the least resource-consuming **eligible** model. Explicitly authorize each supported quota window in `eligible_windows`; unrelated model-specific pools are never activated by the same command. The tool does not auto-rank prices or silently choose another provider.
 3. For an eligible account only, set `activation.mode` to `command`, add a verified `activation.argv` array and set `activation.subscription_verified` to `true` and `activation.confirmed_instance_id` equal to the corresponding account's `instance_id`. Example (pseudocode only; not a verified provider command):
 
 ```json
@@ -54,6 +54,8 @@ The importer rejects unrecognized instance IDs, requires timezone-aware dates, n
   "mode": "command",
   "confirmed_instance_id": "T3_OR_PROVIDER_INSTANCE_ID_FROM_ACCOUNT_SETTINGS",
   "subscription_verified": true,
+  "eligible_windows": ["session"],
+  "verified_model_id": "VERIFIED_SUBSCRIPTION_MODEL_ID",
   "grace_seconds": 90,
   "argv": ["/absolute/path/to/VERIFIED_SUBSCRIPTION_CLI", "VERIFIED_MODEL_FLAG", "VERIFIED_MODEL_ID", "yo"]
 }

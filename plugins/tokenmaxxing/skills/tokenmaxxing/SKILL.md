@@ -15,7 +15,11 @@ description: Improve verified AI-agent work per token or subscription allowance 
 9. **Measure first.** For questions about token use, cost, limits or expense, run `python3 <repo>/tokenmaxxing.py audit --since 7d` and `python3 <repo>/tokenmaxxing.py doctor`. Read findings, propose the top three fixes, and after changes run `audit --compare`. Never paste transcript content.
 10. **No silent installation.** Do not change auth, billing/provider routes, MCP, hooks or settings; get explicit opt-in before enabling an optimizer that executes hooks.
 
-## Reset-window requests
+## Provider quota windows — primary system feature
+
+Use `python3 tokenmaxxing.py quota` and [the quota engine operator guide](../../docs/quota-engine.md) for verified account-specific session, weekly and model pool tracking. Never infer window semantics, impersonate the T3 provider, replay an ambiguous dispatch, claim a restarted timer from a zero exit code, or send API-billed messages. `quota check` notifies by default; exact eligibility and user-approved provider CLI dispatch are configured separately. Activate only verified `first_request` pools, and only using a user-confirmed compatible subscription model.
+
+## Reset-window requests (legacy)
 
 For account-level quota reset optimization, use `python3 tokenmaxxing.py reset` and read `docs/reset-activation.md` plus `policy/reset-activation.md`. Notifications are the default. Never invent reset times, send provider requests, auto-ping fixed weekly windows, or alter auth/routing without verified semantics and explicit opt-in.
 

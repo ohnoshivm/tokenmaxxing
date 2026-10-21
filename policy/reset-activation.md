@@ -1,5 +1,8 @@
 # Reset Activation Policy — Third TOKENMAXXING Pillar
 
+> **Recommended implementation:** [Provider Quota Activation Engine v2](../docs/quota-engine.md) and [v2 policy](quota-activation.md) provide distinct account/model pools and provider-confirmed activation. The original `reset` engine remains supported for compatibility.
+
+
 **Shivam Kumawat (@ohnoshivm) · AgentKind Labs**
 
 ## Built-in operator interface
