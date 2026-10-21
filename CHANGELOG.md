@@ -2,6 +2,13 @@
 
 **Created by [Shivam Kumawat](https://github.com/ohnoshivm) (@ohnoshivm) · AgentKind Labs**
 
+## 2.0.0 — 2026-10-21
+
+- Added the audit Work ledger: successful edits/checks/commits, direct and slash-command skill usage, distinct passing checks, rework, verification order, weighted model tiers and equal-window comparisons. All work measures are proxies, not quality judgements.
+- Added dry-run-first `fix`, scoped to the selected config's sessions: archive unused user skills after ten Claude sessions, preserve `--keep` and symlink targets, write crash-recoverable manifests, list runs and undo without overwriting conflicts. Ambiguous duplicates and configuration overhead remain suggestions.
+- Added opt-in `guard`: bounded transcript tail reads, 5m/1h cache TTL inference, one cold-cache block with a user-visible reason, silent grace-period re-send, and private expiring markers. Hook snippets are printed for manual installation only.
+- Added fix/guard guides and the Measure → Fix → Guard → Prove workflow. No new dependencies, settings writes, credential changes or provider calls.
+
 ## 1.5.0 — 2026-10-21
 
 - Added offline, read-only `audit`, `doctor` and `statusline` commands for local usage measurement, fixed-overhead inspection and live cache/context awareness.

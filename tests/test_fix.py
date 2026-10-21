@@ -34,6 +34,9 @@ class TestFix(unittest.TestCase):
         self.home_patch = patch.object(fix.doctor, '_home', return_value=self.root)
         self.home_patch.start()
         self.addCleanup(self.home_patch.stop)
+        self.cwd_patch = patch.object(fix.Path, 'cwd', return_value=self.root)
+        self.cwd_patch.start()
+        self.addCleanup(self.cwd_patch.stop)
         self.skill('used')
         self.skill('unused')
         self.sessions(10)
@@ -207,7 +210,8 @@ class TestFix(unittest.TestCase):
         def invoke(*flags):
             result = subprocess.run([sys.executable, str(ROOT / 'tokenmaxxing.py'), 'fix',
                                      '--config-dir', str(self.config), '--json', *flags],
-                                    capture_output=True, text=True)
+                                    capture_output=True, text=True, cwd=self.root,
+                                    env={**os.environ, 'HOME': str(self.root)})
             self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
             return json.loads(result.stdout)
         invoke()

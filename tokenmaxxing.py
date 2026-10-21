@@ -228,7 +228,7 @@ def main(argv=None):
         if selected_module is None:
             return 2
     p=argparse.ArgumentParser(prog='tokenmaxxing',description='Pinned optimizer toolkit and portable token-efficient agent skill')
-    p.add_argument('--version', action='version', version='tokenmaxxing 1.5.0')
+    p.add_argument('--version', action='version', version='tokenmaxxing 2.0.0')
     subs=p.add_subparsers(dest='action',required=True)
     install=subs.add_parser('install',help='Stage pinned upstream repos and install one reusable token-efficiency skill')
     install.add_argument('--scope',choices=('user','project'),default='user')
