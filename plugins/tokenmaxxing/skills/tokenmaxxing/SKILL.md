@@ -1,28 +1,22 @@
 ---
 name: tokenmaxxing
-description: Plan and execute software work using token-efficient context retrieval, bounded agent loops, complete requirements and verified outcomes; invoke for coding, debugging, repository analysis, handoffs and optimizer evaluation.
+description: Improve verified AI-agent work per token or subscription allowance through precise context, bounded delegation, local usage measurement, one optimizer, and safe verification.
 ---
 # TOKENMAXXING — Quality-adjusted execution
 
-1. **Finish the whole request.** Confirm acceptance criteria, feature completeness, tests, accessibility, security and design fidelity before simplifying any implementation.
-2. **Select the fewest capable agents.** Use Opus Medium for consequential thinking when available under the user's routing policy, GPT execution for concrete implementation, and scripts for deterministic checks. Never switch models merely for appearances.
-3. **Acquire context precisely.** Start with relevant paths and error traces. Use scoped text search; escalate to AST/LSP and symbols for complex relationships. Avoid unnecessary whole-repository dumps and rereading unchanged context.
-4. **Use one coding-behavior profile.** Balanced (Ponytail candidate), Deep reasoning (Occam candidate), Full product (Whittle candidate), Minimal patch, Large repository. These are **candidates**, not preinstalled active plugins. Never stack overlapping hook-based optimizers.
-5. **Reuse working code.** Prefer existing utilities, documented dependencies and minimal correct changes. Do not sacrifice animations, responsive layout, required interactions or test coverage to save tokens.
-6. **Preserve error evidence.** Filter repetitive *successful* output only when needed, and retain exact failing diagnostics, stack traces and patch context.
-7. **Cache and handoff thoughtfully.** Prefer stable instructions and concise checkpoints over repeated re-exploration. Only compact at meaningful boundaries, preserving open issues and approved decisions.
-8. **Verify every completion.** Run relevant tests and record real results. Report what changed, what passed, what was not checked and what remains unresolved.
-9. **Measure end-to-end.** Record pass/fail, actual fresh/cache/output tokens where available, time, retries and cost. Output shortening alone is not proven task savings.
-10. **No silent installation.** Never change auth, billing/provider routes, MCP/hook settings or T3 configuration. Ask before enabling a third-party optimizer that executes hooks or installs globally.
+1. **Finish the request.** Confirm acceptance criteria, correctness, tests, accessibility, security and design fidelity before simplifying.
+2. **Use the fewest capable agents.** Delegate only when task boundaries and verification are clear; use scripts for deterministic work.
+3. **Acquire context precisely.** Start with relevant paths, symbols and error traces; avoid dumping unchanged files or full transcripts.
+4. **Use one coding-behavior optimizer.** Treat profiles and upstream tools as candidates. Never stack overlapping rules or hooks.
+5. **Reuse working code.** Prefer existing utilities and dependencies; preserve required behavior and quality.
+6. **Keep useful evidence.** Filter repetitive successful output when helpful; retain exact failures, diagnostics and patch context.
+7. **Cache and hand off thoughtfully.** Keep stable instructions concise; checkpoint decisions, open issues and acceptance evidence.
+8. **Verify the result.** Run relevant checks and report actual outcomes, gaps and unresolved issues.
+9. **Measure first.** For questions about token use, cost, limits or expense, run `python3 <repo>/tokenmaxxing.py audit --since 7d` and `python3 <repo>/tokenmaxxing.py doctor`. Read findings, propose the top three fixes, and after changes run `audit --compare`. Never paste transcript content.
+10. **No silent installation.** Do not change auth, billing/provider routes, MCP, hooks or settings; get explicit opt-in before enabling an optimizer that executes hooks.
 
-Read `profiles/` and `policy/optimizer-registry.json` for tools and profiles. CLAUDE Code plugin commands are not guaranteed to work in T3 Chat.
+## Reset-window requests
 
+For account-level quota reset optimization, use `python3 tokenmaxxing.py reset` and read `docs/reset-activation.md` plus `policy/reset-activation.md`. Notifications are the default. Never invent reset times, send provider requests, auto-ping fixed weekly windows, or alter auth/routing without verified semantics and explicit opt-in.
 
-## Integrated reset-window feature
-
-When the user requests account-level quota reset optimisation, prefer the integrated
-`python3 tokenmaxxing.py reset` CLI (`setup`, `status`, `check --dry-run`, `watch`,
-`ack`, `install-macos`). Refer to `docs/reset-activation.md` and
-`policy/reset-activation.md`. The system is notification-only by default; never
-invent provider reset timestamps, send subscription API calls, auto-ping fixed
-weekly windows, or alter auth/routing without verified semantics and explicit opt-in.
+Read `profiles/` and `policy/optimizer-registry.json` for candidates. Claude Code plugin commands may not work in T3 Chat.

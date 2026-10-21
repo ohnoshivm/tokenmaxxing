@@ -2,6 +2,14 @@
 
 **Created by [Shivam Kumawat](https://github.com/ohnoshivm) (@ohnoshivm) · AgentKind Labs**
 
+## 1.5.0 — 2026-10-21
+
+- Added offline, read-only `audit`, `doctor` and `statusline` commands for local usage measurement, fixed-overhead inspection and live cache/context awareness.
+- Added equal-window `audit --compare` with compact values, signed changes and direction-aware labels; fixed doctor's tilde/relative config-path resolution and covered CLI section totals.
+- Replaced the research-wall README with a scannable toolkit guide and moved the original long-form research into `research/delegation-paper-2026.md`.
+- Updated skill guidance, installation and quick-start docs, release metadata and CI coverage.
+- No transcript content is uploaded; audit and doctor do not modify provider authentication, MCP servers, hooks or settings.
+
 ## 1.4 — 2026-10-21
 
 - Integrated Reset Activation Engine directly into `tokenmaxxing.py reset` (setup/status/check/watch/ack/install-macos).
