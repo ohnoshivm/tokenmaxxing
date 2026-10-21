@@ -5,11 +5,12 @@ import json
 import os
 from pathlib import Path
 import sys
+import subprocess
 import tempfile
 import unittest
 from unittest.mock import patch
 
-from test_audit import assistant, stamp, write_jsonl
+from test_audit import ROOT, assistant, stamp, write_jsonl
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
 import fix
@@ -190,6 +191,31 @@ class TestFix(unittest.TestCase):
         value['moves'][0]['src'] = str(self.settings)
         manifest.write_text(json.dumps(value))
         self.assertEqual(self.run_fix('--undo')[0], 1)
+
+
+    def test_manifest_update_never_truncates_an_existing_temporary_hardlink(self):
+        directory = self.config / 'tokenmaxxing-archive' / '20261021T120000Z'
+        directory.mkdir(parents=True)
+        path = directory / 'manifest.json'
+        os.link(self.settings, path.with_suffix('.new'))
+        fix.write_manifest(path, {'run_id': '20261021T120000Z', 'moves': []})
+        self.assertEqual(self.settings.read_bytes(), self.settings_bytes)
+        self.assertEqual(json.loads(path.read_text())['moves'], [])
+
+    def test_cli_dry_run_apply_undo_and_list(self):
+        before = tree(self.config)
+        def invoke(*flags):
+            result = subprocess.run([sys.executable, str(ROOT / 'tokenmaxxing.py'), 'fix',
+                                     '--config-dir', str(self.config), '--json', *flags],
+                                    capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+            return json.loads(result.stdout)
+        invoke()
+        self.assertEqual(tree(self.config), before)
+        applied = invoke('--apply')
+        self.assertEqual(invoke('--list')['runs'][0]['run_id'], applied['run_id'])
+        self.assertTrue(invoke('--undo')['undone'])
+        self.assertEqual({k: v for k, v in tree(self.config).items() if not k.startswith('tokenmaxxing-archive/')}, before)
 
     def test_archive_symlink_is_refused(self):
         external = self.root / 'external'

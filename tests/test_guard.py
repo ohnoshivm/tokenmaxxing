@@ -145,6 +145,7 @@ class TestGuard(unittest.TestCase):
         elapsed = time.perf_counter() - started
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(json.loads(result.stdout)['decision'], 'block')
+        # gstack-timing-ok: the approved spec explicitly requires a <200 ms CLI check.
         self.assertLess(elapsed, .2, 'guard subprocess took {:.3f}s'.format(elapsed))
 
 

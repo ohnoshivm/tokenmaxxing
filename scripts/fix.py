@@ -8,6 +8,7 @@ from pathlib import Path
 import re
 import shlex
 import sys
+import tempfile
 
 import audit
 import doctor
@@ -133,10 +134,12 @@ def run_dir(config_dir, run_id):
 
 
 def write_manifest(path, manifest):
-    if path.is_symlink() or path.with_suffix('.new').is_symlink():
+    if path.is_symlink():
         raise ValueError('Manifest must not be a symlink')
-    temporary = path.with_suffix('.new')
-    with temporary.open('w', encoding='utf-8') as handle:
+    # Exclusive temporary creation avoids following an existing link or hardlink.
+    with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', prefix='.manifest-',
+                                     dir=path.parent, delete=False) as handle:
+        temporary = Path(handle.name)
         json.dump(manifest, handle, indent=2)
         handle.write('\n')
         handle.flush()
@@ -151,7 +154,8 @@ def apply_plan(report, config_dir):
     now = datetime.now(timezone.utc)
     run_id = now.strftime('%Y%m%dT%H%M%SZ')
     directory = run_dir(config_dir, run_id)
-    directory.mkdir(parents=True, exist_ok=False)
+    archive_root(config_dir).mkdir(mode=0o700, parents=True, exist_ok=True)
+    directory.mkdir(mode=0o700, exist_ok=False)
     (directory / 'skills').mkdir()
     manifest = {'run_id': run_id, 'version': VERSION, 'created': now.isoformat(), 'config_dir': str(config_dir),
                 'moves': [{'src': a['src'], 'dst': str(directory / 'skills' / a['name']), 'kind': a['kind'], 'done': False}

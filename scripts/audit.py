@@ -78,17 +78,18 @@ def skill_invocation(session, name):
         return
     plugin, name = name.rsplit(':', 1) if ':' in name else (None, name)
     session.skills_used[(plugin, name)] += 1
+    return plugin, name
 
 
 def slash_invocation(session, content):
     if isinstance(content, list):
-        content = '\n'.join(b.get('text', '') for b in content if isinstance(b, dict) and b.get('type') == 'text')
+        content = '\n'.join(b.get('text', '') for b in content if isinstance(b, dict) and b.get('type') in ('text', 'input_text'))
     if not isinstance(content, str):
         return
     tagged = re.search(r'<command-name>\s*/?([^<\s]+)\s*</command-name>', content)
     plain = re.match(r'^\s*/([\w:.-]+)(?:\s|$)', content)
     if tagged or plain:
-        skill_invocation(session, (tagged or plain).group(1))
+        return skill_invocation(session, (tagged or plain).group(1))
 
 
 def work_call(session, name, inp, position):
@@ -414,6 +415,7 @@ def parse_codex(path, since=None, until=None, seen_sessions=None):
     last, model, limits, meta_id = None, None, None, None
     work_calls, result_ids = {}, set()
     last_weighted = 0
+    user_sources = defaultdict(Counter)
     with path.open(encoding='utf-8', errors='replace') as f:
         for position, line in enumerate(f):
             try:
@@ -450,7 +452,12 @@ def parse_codex(path, since=None, until=None, seen_sessions=None):
                         work_result(s, work_calls.get(call_id), outcome)
                         result_ids.add(call_id)
                 elif kind in ('user_message', 'message') and (kind == 'user_message' or p.get('role') == 'user'):
-                    slash_invocation(s, p.get('message', p.get('content')))
+                    key = slash_invocation(s, p.get('message', p.get('content')))
+                    if key:
+                        previous_count = max((counts[key] for counts in user_sources.values()), default=0)
+                        user_sources[o.get('type')][key] += 1
+                        if user_sources[o.get('type')][key] <= previous_count:
+                            s.skills_used[key] -= 1  # event_msg and response_item mirror the same user turn
             if o.get('type') == 'session_meta':
                 meta_id = p.get('id') or meta_id
                 s.project = '/'.join(Path(p.get('cwd', '?')).parts[-2:])

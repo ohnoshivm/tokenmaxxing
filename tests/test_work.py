@@ -173,6 +173,42 @@ class TestWork(unittest.TestCase):
         work = audit.summarize([session])['work']
         self.assertEqual((work['edits'], work['checks_passed'], work['verified_edit_sessions']), (1, 1, 1))
 
+
+    def test_compare_work_directions_and_premium_neutral(self):
+        session = self.claude([('Edit', {}, False), ('Bash', {'command': 'pytest'}, False)])
+        current = audit.summarize([session])
+        previous = audit.summarize([session])
+        for report in (current, previous):
+            report['work']['checks_passed'] = 5
+        current['work'].update(usage_per_passing_check=100, rework_rate=.1, verified_edit_share=.8, premium_share=.8)
+        previous['work'].update(usage_per_passing_check=200, rework_rate=.3, verified_edit_share=.4, premium_share=.6)
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            audit.print_comparison(audit.build_comparison(current, previous))
+        lines = output.getvalue().splitlines()
+        for label in ('Usage per passing check', 'Rework rate', 'Verified-edit share'):
+            self.assertTrue(any(label in line and line.endswith('better') for line in lines))
+        self.assertTrue(any('Premium share' in line and line.endswith('neutral') for line in lines))
+
+
+    def test_codex_slash_messages_count_mirrored_sources_once(self):
+        events = [{'type': 'session_meta', 'timestamp': stamp(), 'payload': {'id': 'skills', 'cwd': '/repo'}}]
+        for _ in range(2):
+            events.extend([
+                {'type': 'event_msg', 'timestamp': stamp(), 'payload': {'type': 'user_message', 'message': '/manual arg'}},
+                {'type': 'response_item', 'timestamp': stamp(), 'payload': {'type': 'message', 'role': 'user',
+                    'content': [{'type': 'input_text', 'text': '/manual arg'}]}},
+            ])
+        events.extend([
+            {'type': 'response_item', 'timestamp': stamp(), 'payload': {'type': 'message', 'role': 'user',
+                'content': [{'type': 'input_text', 'text': '<command-name>/plugin:skill</command-name>'}]}},
+            {'type': 'event_msg', 'payload': {'type': 'token_count', 'info': {'total_token_usage': {'input_tokens': 10}}}},
+        ])
+        with tempfile.TemporaryDirectory() as tmp:
+            report = audit.summarize([audit.parse_codex(write_jsonl(Path(tmp) / 'rollout.jsonl', events))])
+        self.assertEqual(report['skills_used'], [{'name': 'manual', 'plugin': None, 'count': 2},
+                                                {'name': 'skill', 'plugin': 'plugin', 'count': 1}])
+
     def test_work_findings_thresholds(self):
         session = self.claude([('Edit', {}, False), ('Bash', {'command': 'pytest'}, True)])
         findings = audit.summarize([session])['findings']
