@@ -43,14 +43,14 @@ Run these commands from the repository checkout with `python3 tokenmaxxing.py`.
 
 ## Commands
 
-| Command | What it does | Writes anything? |
+| Command | What it does | Writes? |
 | --- | --- | --- |
 | `audit` | Measure local usage and the work proxy. | No. |
 | `doctor` | Inspect always-loaded setup overhead. | No. |
 | `fix` | Plan reversible skill moves. | No by default; `--apply` moves files. |
 | `guard` | Opt-in cold-cache prompt hold. | Marker files only when active. |
 | `statusline` | Show context and cache status. | No; `--install` prints a snippet. |
-| `reset` | Configure reset windows and inspect notifications. | Setup and checks write config/state. |
+| `reset` | Configure reset windows and inspect notifications. | Setup writes config; live checks write state. |
 | `install` | Install the skill and stage eight pinned sources. | Yes; may fetch unless `--no-fetch` is used. |
 | `status` | Inspect staged sources and the installed skill. | No. |
 | `profiles` | List task profiles. | No. |
