@@ -5,6 +5,7 @@ Standard library only. Does not change API credentials, provider routing,
 Claude settings.json, shell profiles, existing subagents, or T3 configuration.
 """
 import argparse
+import importlib
 import json
 import os
 from pathlib import Path
@@ -132,6 +133,7 @@ def status():
     cfg=reset_config_path()
     say(f'Reset Activation Engine: {"configured" if cfg.is_file() else "not configured"} ({cfg})')
     say('Reset controls: python3 tokenmaxxing.py reset --help')
+    say('Usage audit: python3 tokenmaxxing.py audit --help · doctor: python3 tokenmaxxing.py doctor --help · statusline: python3 tokenmaxxing.py statusline --help')
 
 
 def preview_plugin(tool):
@@ -202,8 +204,31 @@ def run_reset_action(args):
     return subprocess.call(cmd)
 
 
-def main():
+def load_subcommand(name):
+    script = ROOT / 'scripts' / (name + '.py')
+    if not script.is_file():
+        say(f"Subcommand '{name}' is unavailable: scripts/{name}.py is missing")
+        return None
+    script_dir = str(ROOT / 'scripts')
+    if script_dir not in sys.path:
+        sys.path.insert(0, script_dir)
+    try:
+        return importlib.import_module(name)
+    except ImportError as e:
+        say(f"Subcommand '{name}' is unavailable: could not load scripts/{name}.py ({e})")
+        return None
+
+
+def main(argv=None):
+    argv = list(sys.argv[1:] if argv is None else argv)
+    module_names = ('audit', 'doctor', 'statusline')
+    selected_module = None
+    if argv and argv[0] in module_names:
+        selected_module = load_subcommand(argv[0])
+        if selected_module is None:
+            return 2
     p=argparse.ArgumentParser(prog='tokenmaxxing',description='Pinned optimizer toolkit and portable token-efficient agent skill')
+    p.add_argument('--version', action='version', version='tokenmaxxing 1.5.0')
     subs=p.add_subparsers(dest='action',required=True)
     install=subs.add_parser('install',help='Stage pinned upstream repos and install one reusable token-efficiency skill')
     install.add_argument('--scope',choices=('user','project'),default='user')
@@ -213,6 +238,13 @@ def main():
     install.add_argument('--replace-skill',action='store_true',help='Back up existing skill before replacing it')
     install.add_argument('--with-reset-config',action='store_true',help='Prepare an inactive, private reset-watcher config (never sends a request)')
     subs.add_parser('status',help='Check staged git revisions and installed skill')
+    for name, help_text in (
+            ('audit', 'Measure token spend from local agent session logs'),
+            ('doctor', 'Inspect local agent configuration and context overhead'),
+            ('statusline', 'Show a compact live usage statusline')):
+        cmd = subs.add_parser(name, help=help_text)
+        if name == (argv[0] if argv else None) and selected_module is not None:
+            selected_module.add_arguments(cmd)
     pp=subs.add_parser('profiles',help='List available profiles')
     plugin=subs.add_parser('plugin-commands',help='Show upstream native plugin commands; never executes them')
     plugin.add_argument('id',choices=[t['id'] for t in registry()])
@@ -226,7 +258,9 @@ def main():
     reset.add_argument('--account',help='Account ID for manual acknowledgment')
     reset.add_argument('--at',help='Time of first real request, ISO 8601 with zone')
     reset.add_argument('--poll-seconds',type=int,help='Polling interval, minimum 60 seconds')
-    args=p.parse_args()
+    args=p.parse_args(argv)
+    if args.action in module_names:
+        return selected_module.run(args)
     if args.action=='reset':return run_reset_action(args)
     if args.action=='status':status();return 0
     if args.action=='profiles':

@@ -1,5 +1,17 @@
 # Installation and verification
 
+## Measure before changing your setup
+
+From the repository directory, run the local read-only tools:
+
+```bash
+python3 tokenmaxxing.py audit --since 7d
+python3 tokenmaxxing.py doctor
+python3 tokenmaxxing.py statusline --install
+```
+
+`audit` analyzes local Claude Code transcripts and Codex rollouts without uploading data. `doctor` reports always-loaded context and optimizer stacking; it prints MCP names and transports, never secrets. `statusline --install` prints a settings snippet without writing settings. After a change, use `python3 tokenmaxxing.py audit --since 7d --compare` to compare equal windows per turn. See [statusline setup](statusline.md).
+
 ## First-class Reset Activation Engine (opt-in)
 
 TOKENMAXXING includes the reset window watcher in its main CLI. After cloning:

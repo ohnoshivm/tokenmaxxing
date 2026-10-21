@@ -4,6 +4,16 @@
 
 **This repository is an operating protocol, not installed software.** It does not contain a live auto-router or an official T3 configuration file.
 
+## Measure, inspect and watch
+
+```bash
+python3 tokenmaxxing.py audit --since 7d
+python3 tokenmaxxing.py doctor
+python3 tokenmaxxing.py statusline --install
+```
+
+`audit` reads local Claude Code transcript and Codex rollout usage offline; `doctor` inspects always-loaded context and optimizer stacking. Both are read-only. `statusline --install` prints a Claude Code settings snippet and never writes it. After making a change, compare equal windows with `python3 tokenmaxxing.py audit --since 7d --compare`. See [statusline setup](docs/statusline.md).
+
 ## Reset-window activation — integrated feature
 
 ```bash
