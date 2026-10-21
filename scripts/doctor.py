@@ -32,12 +32,20 @@ def _home():
     return Path.home()
 
 
-def _config_dir(home=None):
+def _config_dir(home=None, override=None):
     home = home or _home()
+    if override:
+        return Path(override).expanduser().resolve()
     configured = os.environ.get('CLAUDE_CONFIG_DIR')
     if configured:
         return Path(configured).expanduser().resolve()
     return (home / '.claude').resolve()
+
+
+def _config_source(override=None):
+    if override:
+        return '--config-dir'
+    return 'CLAUDE_CONFIG_DIR' if os.environ.get('CLAUDE_CONFIG_DIR') else 'default'
 
 
 def _read_text(path):
@@ -395,7 +403,7 @@ def _duplicates(skill_records):
     return sorted(duplicates, key=lambda item: item['name'].casefold())
 
 
-def _findings(report):
+def _findings(report, home=None):
     findings = []
     optimizer_ids = [item['id'] for item in report['optimizers']['active']]
     if len(optimizer_ids) > 1:
@@ -451,14 +459,23 @@ def _findings(report):
             'text': 'Hooks include ' + ' and '.join(flagged) + '; check whether their injected text is necessary on every session or turn.',
         })
     order = {'HIGH': 0, 'MEDIUM': 1, 'LOW': 2}
+    if report.get('config_dir_source') == 'CLAUDE_CONFIG_DIR' and home is not None:
+        other = (Path(home) / '.claude').resolve()
+        if other != Path(report['config_dir']) and ((other / 'CLAUDE.md').is_file() or (other / 'skills').is_dir()):
+            findings.append({
+                'priority': 'LOW',
+                'impact_tokens': 0,
+                'text': 'Another Claude config exists at ~/.claude; run `doctor --config-dir ~/.claude` to audit it too.',
+            })
     findings.sort(key=lambda item: (order[item['priority']], -item['impact_tokens'], item['text']))
     return findings
 
 
-def collect_report(project_dir=None, measure=True):
+def collect_report(project_dir=None, measure=True, config_dir=None):
     home = _home().resolve()
     project_dir = Path(project_dir or Path.cwd()).expanduser().resolve()
-    config_dir = _config_dir(home)
+    override = config_dir
+    config_dir = _config_dir(home, override)
     settings = _read_json(config_dir / 'settings.json', {})
     installed = _read_json(config_dir / 'plugins' / 'installed_plugins.json', {})
 
@@ -494,6 +511,7 @@ def collect_report(project_dir=None, measure=True):
     report = {
         'project_dir': str(project_dir),
         'config_dir': str(config_dir),
+        'config_dir_source': _config_source(override),
         'instructions': {
             'files': instruction_files,
             'claude_tokens': claude_instruction_tokens,
@@ -541,12 +559,13 @@ def collect_report(project_dir=None, measure=True):
             }
         except (OSError, ValueError, KeyError, TypeError):
             report['measured'] = {'sessions': 0, 'median': None, 'p90': None}
-    report['findings'] = _findings(report)
+    report['findings'] = _findings(report, home)
     return report
 
 
 def _human_report(report):
-    lines = [f"TOKENMAXXING doctor — project {report['project_dir']}", '']
+    lines = [f"Config dir: {report['config_dir']} (from {report['config_dir_source']})", '',
+             f"TOKENMAXXING doctor — project {report['project_dir']}", '']
     ins = report['instructions']
     claude_files = [item for item in ins['files'] if item['loaded_by'] == 'claude']
     codex_files = [item for item in ins['files'] if item['loaded_by'] == 'codex']
@@ -627,6 +646,7 @@ def _human_report(report):
 
 def add_arguments(ap):
     ap.add_argument('--project-dir', type=Path, default=Path.cwd(), help='project root to inspect (default: current directory)')
+    ap.add_argument('--config-dir', type=Path, help='Claude config directory to audit (default: $CLAUDE_CONFIG_DIR or ~/.claude)')
     ap.add_argument('--no-measure', action='store_true', help='skip reading the last 30 days of local session logs')
     ap.add_argument('--json', action='store_true', help='print machine-readable JSON')
 
@@ -635,6 +655,7 @@ def run(args):
     report = collect_report(
         project_dir=getattr(args, 'project_dir', None),
         measure=not getattr(args, 'no_measure', False),
+        config_dir=getattr(args, 'config_dir', None),
     )
     if getattr(args, 'json', False):
         print(json.dumps(report, indent=2, sort_keys=True))

@@ -62,7 +62,7 @@ Opus 5.5 · ctx 129k/200k ▓▓▓░░ · cache cold — next turn rewrites ~
 | `python3 tokenmaxxing.py profiles` | List available task profiles. |
 | `python3 tokenmaxxing.py plugin-commands NAME` | Print native plugin commands for a candidate. |
 | `python3 tokenmaxxing.py audit [--since 30d\|7d\|24h\|all\|ISO] [--compare] [--project TEXT] [--path DIR] [--top N] [--json]` | Offline analysis of local Claude Code transcripts and Codex rollouts. |
-| `python3 tokenmaxxing.py doctor [--project-dir PATH] [--no-measure] [--json]` | Read-only audit of always-loaded instruction and tool overhead. |
+| `python3 tokenmaxxing.py doctor [--project-dir PATH] [--config-dir PATH] [--no-measure] [--json]` | Read-only audit of always-loaded instruction and tool overhead. |
 | `python3 tokenmaxxing.py statusline [--install]` | Show live context/cache status, or print the install snippet. |
 | `python3 tokenmaxxing.py reset SUBCOMMAND` | Inspect or configure reset-window notifications; see [reset guide](docs/reset-activation.md). |
 

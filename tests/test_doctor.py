@@ -197,6 +197,74 @@ class DoctorTests(unittest.TestCase):
                                          expected['estimated_always_loaded_tokens'])
                         self.assertIsNone(report['measured'])
 
+    def test_reports_config_dir_and_source_in_text_and_json(self):
+        (self.home / '.claude').symlink_to(self.config, target_is_directory=True)
+        os.environ.pop('CLAUDE_CONFIG_DIR')
+        home_patch, registry_patch = self._environment()
+        with home_patch, registry_patch:
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                code = doctor.main(['--project-dir', str(self.project), '--no-measure'])
+            self.assertEqual(code, 0)
+            text = output.getvalue().splitlines()[0]
+            self.assertEqual(text, f"Config dir: {self.config.resolve()} (from default)")
+
+            os.environ['CLAUDE_CONFIG_DIR'] = str(self.config)
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                doctor.main(['--project-dir', str(self.project), '--no-measure'])
+            self.assertEqual(output.getvalue().splitlines()[0],
+                             f"Config dir: {self.config.resolve()} (from CLAUDE_CONFIG_DIR)")
+
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                doctor.main(['--project-dir', str(self.project), '--no-measure', '--json'])
+        self.assertEqual(json.loads(output.getvalue())['config_dir'], str(self.config.resolve()))
+
+    def test_config_dir_flag_overrides_env_for_both_entrypoints(self):
+        other = self.base / 'other-config'
+        write(other / 'CLAUDE.md', 'O' * 400)
+        env = os.environ.copy()
+        env['CLAUDE_CONFIG_DIR'] = str(self.config)
+        for entry, command in ((ROOT / 'tokenmaxxing.py', ['doctor']), (SCRIPTS / 'doctor.py', [])):
+            for argv, parse in ((('--no-measure',), False), (('--no-measure', '--json'), True)):
+                result = subprocess.run(
+                    [sys.executable, str(entry), *command, '--project-dir', str(self.project),
+                     '--config-dir', str(other), *argv],
+                    cwd=self.project, env=env, text=True, capture_output=True,
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+                if parse:
+                    report = json.loads(result.stdout)
+                    self.assertEqual(report['config_dir'], str(other.resolve()))
+                    self.assertEqual(report['config_dir_source'], '--config-dir')
+                    paths = {item['path'] for item in report['instructions']['files']}
+                    self.assertIn(str((other / 'CLAUDE.md').resolve()), paths)
+                else:
+                    self.assertEqual(result.stdout.splitlines()[0],
+                                     f"Config dir: {other.resolve()} (from --config-dir)")
+
+    def test_flags_second_config_only_when_env_points_elsewhere(self):
+        other = self.home / '.claude'
+        write(other / 'CLAUDE.md', 'D' * 44)
+        home_patch, registry_patch = self._environment()
+        with home_patch, registry_patch:
+            report = doctor.collect_report(self.project, measure=False)
+        self.assertEqual(report['config_dir_source'], 'CLAUDE_CONFIG_DIR')
+        self.assertIn('Another Claude config exists at ~/.claude; run `doctor --config-dir ~/.claude` to audit it too.',
+                      [item['text'] for item in report['findings'] if item['priority'] == 'LOW'])
+
+        os.environ['CLAUDE_CONFIG_DIR'] = str(other)
+        with home_patch, registry_patch:
+            report = doctor.collect_report(self.project, measure=False)
+        self.assertFalse(any('Another Claude config' in item['text'] for item in report['findings']))
+
+        os.environ['CLAUDE_CONFIG_DIR'] = str(self.config)
+        (other / 'CLAUDE.md').unlink()
+        with home_patch, registry_patch:
+            report = doctor.collect_report(self.project, measure=False)
+        self.assertFalse(any('Another Claude config' in item['text'] for item in report['findings']))
+
     def test_measured_baseline_uses_audit_summary(self):
         sessions = [object()]
         summary = {'claude': {'sessions': 1, 'starting_context': {'median': 12_000, 'p90': 16_000}}}
