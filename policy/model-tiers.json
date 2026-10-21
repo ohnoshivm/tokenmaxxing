@@ -1,0 +1,9 @@
+{
+  "*opus*": "premium",
+  "*sonnet*": "standard",
+  "*haiku*": "economy",
+  "gpt-*-sol*": "premium",
+  "gpt-*-luna*": "standard",
+  "*deepseek*": "economy",
+  "*flash*": "economy"
+}

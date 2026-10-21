@@ -8,8 +8,11 @@ Nothing is uploaded; transcript text is never printed except short tool labels.
 import argparse
 from collections import Counter, defaultdict
 from datetime import datetime, timedelta, timezone
+import fnmatch
 import json
 import os
+import re
+import shlex
 from pathlib import Path
 import statistics
 import sys
@@ -20,6 +23,172 @@ import sys
 WEIGHTS = {'input': 1.0, 'cache_write_5m': 1.25, 'cache_write_1h': 2.0, 'cache_read': 0.1, 'output': 5.0}
 CHARS_PER_TOKEN = 4  # rough estimate for tool output; usage fields are exact
 REBUILD_MIN = 20_000  # cache write this large while reading less than it = prefix rebuilt
+
+
+CHECK_PATTERN = re.compile(
+    r'^(?:\S*/)?(?:pytest|vitest|jest|tsc|eslint|ruff|mypy)(?=\s|$)|'
+    r'^(?:\S*/)?python(?:\d+(?:\.\d+)*)?\s+-m\s+(?:unittest|pytest)(?=\s|$)|'
+    r'^(?:npm|pnpm|yarn|bun)\s+(?:run\s+)?(?:test|build|lint|typecheck|check)(?=\s|$)|'
+    r'^cargo\s+(?:test|build|check|clippy)(?=\s|$)|^go\s+(?:test|build|vet)(?=\s|$)|'
+    r'^make\s+(?:test|check|build)(?=\s|$)|^(?:\S*/)?(?:gradle|gradlew|mvn)\s+(?:.*\s)?test(?=\s|$)|'
+    r'^swift\s+(?:test|build)(?=\s|$)|^playwright\s+test(?=\s|$)'
+)
+EDIT_TOOLS = {'Edit', 'MultiEdit', 'Write', 'NotebookEdit', 'apply_patch'}
+SHELL_TOOLS = {'Bash', 'shell', 'shell_command', 'exec_command'}
+MODEL_TIERS = Path(__file__).resolve().parents[1] / 'policy' / 'model-tiers.json'
+
+
+def shell_segments(command):
+    if isinstance(command, list) and all(isinstance(x, str) for x in command):
+        if len(command) >= 3 and Path(command[0]).name in ('bash', 'sh', 'zsh') and 'c' in command[1]:
+            command = command[2]
+        else:
+            return [command]
+    if not isinstance(command, str):
+        return []
+    try:
+        lexer = shlex.shlex(command, posix=True, punctuation_chars=';&|\n')
+        lexer.whitespace = ' \t\r'
+        lexer.whitespace_split = True
+        segments, current = [], []
+        for word in lexer:
+            if word and all(c in ';&|\n' for c in word):
+                if current:
+                    segments.append(current)
+                current = []
+            else:
+                current.append(word)
+        if current:
+            segments.append(current)
+        return segments
+    except ValueError:
+        return []
+
+
+def check_commands(command):
+    return [shlex.join(words) for words in shell_segments(command)
+            if CHECK_PATTERN.match(' '.join(words))]
+
+
+def skill_invocation(session, name):
+    if not isinstance(name, str):
+        return
+    name = name.strip().lstrip('/').split()[0] if name.strip().lstrip('/') else ''
+    if not name:
+        return
+    plugin, name = name.rsplit(':', 1) if ':' in name else (None, name)
+    session.skills_used[(plugin, name)] += 1
+
+
+def slash_invocation(session, content):
+    if isinstance(content, list):
+        content = '\n'.join(b.get('text', '') for b in content if isinstance(b, dict) and b.get('type') == 'text')
+    if not isinstance(content, str):
+        return
+    tagged = re.search(r'<command-name>\s*/?([^<\s]+)\s*</command-name>', content)
+    plain = re.match(r'^\s*/([\w:.-]+)(?:\s|$)', content)
+    if tagged or plain:
+        skill_invocation(session, (tagged or plain).group(1))
+
+
+def work_call(session, name, inp, position):
+    if name == 'Skill':
+        skill_invocation(session, inp.get('skill'))
+    command = inp.get('command', inp.get('cmd', '')) if name in SHELL_TOOLS else ''
+    checks = check_commands(command)
+    if checks:
+        session.work['checks'] += 1
+    commit = False
+    for words in shell_segments(command):
+        if not words or Path(words[0]).name != 'git' or '--dry-run' in words:
+            continue
+        index = 1
+        while index < len(words) and words[index] in ('-C', '-c', '--git-dir', '--work-tree'):
+            index += 2
+        if index < len(words) and words[index] == 'commit':
+            commit = True
+    normalized = tuple(shlex.join(words) for words in shell_segments(command)) if checks else ()
+    return name in EDIT_TOOLS, normalized, commit, position
+
+
+def work_result(session, call, success):
+    if call is None or success is None:
+        return
+    edit, checks, commit, position = call
+    if edit and success:
+        session.work['edits'] += 1
+        session.last_edit = max(session.last_edit, position)
+    if checks:
+        session.work['checks_passed' if success else 'checks_failed'] += 1
+        if success:
+            session.passing_checks.add(tuple(checks))
+            session.last_passing_check = max(session.last_passing_check, position)
+    if commit and success:
+        session.work['commits'] += 1
+
+
+def codex_outcome(output):
+    if isinstance(output, str):
+        try:
+            parsed = json.loads(output)
+        except ValueError:
+            parsed = None
+        if isinstance(parsed, dict):
+            return codex_outcome(parsed)
+        match = re.search(r'(?:Process exited with code|exited with (?:code|status)|Exit code:)\s*(-?\d+)', output)
+        if match:
+            return int(match.group(1)) == 0
+        if output.startswith('Success.'):
+            return True
+        if output.startswith(('Failed', 'Error:', 'error:', 'apply_patch verification failed')):
+            return False
+    if isinstance(output, dict):
+        code = output.get('exit_code')
+        if code is None and isinstance(output.get('metadata'), dict):
+            code = output['metadata'].get('exit_code')
+        if isinstance(code, int):
+            return code == 0
+        if isinstance(output.get('success'), bool):
+            return output['success']
+    return None
+
+
+def work_summary(sessions):
+    counts, skills, models = Counter(), Counter(), Counter()
+    for session in sessions:
+        counts.update(session.work)
+        counts['distinct_passing_checks'] += len(session.passing_checks)
+        if session.work['edits']:
+            key = ('verified_edit_sessions' if session.last_passing_check > session.last_edit
+                   else 'unverified_edit_sessions')
+            counts[key] += 1
+        skills.update(session.skills_used)
+        models.update(session.model_units)
+    work = {key: counts[key] for key in ('edits', 'checks', 'checks_passed', 'checks_failed', 'commits',
+                                       'distinct_passing_checks', 'verified_edit_sessions', 'unverified_edit_sessions')}
+    weighted = sum(session.weighted() for session in sessions)
+    work['weighted_units'] = weighted
+    work['usage_per_passing_check_raw'] = weighted / counts['checks_passed'] if counts['checks_passed'] else None
+    work['usage_per_passing_check'] = weighted / counts['distinct_passing_checks'] if counts['distinct_passing_checks'] else None
+    work['usage_per_distinct_passing_check'] = work['usage_per_passing_check']
+    known_checks = counts['checks_passed'] + counts['checks_failed']
+    edited = counts['verified_edit_sessions'] + counts['unverified_edit_sessions']
+    work['rework_rate'] = counts['checks_failed'] / known_checks if known_checks else None
+    work['verified_edit_share'] = counts['verified_edit_sessions'] / edited if edited else None
+    tiers = json.loads(MODEL_TIERS.read_text(encoding='utf-8'))
+    mix, unknown = Counter(), []
+    for model, units in models.items():
+        tier = next((tier for pattern, tier in tiers.items() if fnmatch.fnmatchcase(model.lower(), pattern)), 'unknown')
+        mix[tier] += units
+        if tier == 'unknown':
+            unknown.append(model)
+    total = sum(mix.values())
+    work['model_mix'] = {tier: mix[tier] / total if total else None
+                         for tier in ('premium', 'standard', 'economy', 'unknown')}
+    work['premium_share'] = work['model_mix']['premium']
+    work['unknown_models'] = sorted(unknown)
+    return work, [{'name': name, 'plugin': plugin, 'count': count}
+                  for (plugin, name), count in sorted(skills.items(), key=lambda x: (x[0][1], x[0][0] or ''))]
 
 
 def claude_roots():
@@ -83,7 +252,8 @@ def project_name(path):
 
 class Session:
     __slots__ = ('id', 'project', 'agent', 'start', 'turns', 'usage', 'models', 'baseline',
-                 'rebuilds', 'results', 'reads', 'subagent')
+                 'rebuilds', 'results', 'reads', 'subagent', 'work', 'skills_used', 'model_units',
+                 'last_edit', 'last_passing_check', 'passing_checks')
 
     def __init__(self, sid, project, agent, subagent=False):
         self.id, self.project, self.agent, self.subagent = sid, project, agent, subagent
@@ -93,6 +263,9 @@ class Session:
         self.rebuilds = []   # cache_write tokens per rebuild event
         self.results = []    # (est_tokens, label, carry_turns)
         self.reads = Counter()
+        self.work, self.skills_used, self.model_units = Counter(), Counter(), Counter()
+        self.last_edit = self.last_passing_check = -1
+        self.passing_checks = set()
 
     def weighted(self):
         return sum(self.usage[k] * w for k, w in WEIGHTS.items())
@@ -108,7 +281,7 @@ def in_window(ts, since=None, until=None):
     return True
 
 
-def parse_claude(path, since=None, until=None, seen_msgs=None, seen_tool_ids=None, root=None):
+def parse_claude(path, since=None, until=None, seen_msgs=None, seen_tool_ids=None, root=None, seen_user_msgs=None):
     """Parse one Claude Code transcript into a Session (or None if empty/out of range)."""
     path = Path(path)
     seen_msgs = seen_msgs if seen_msgs is not None else set()
@@ -124,7 +297,8 @@ def parse_claude(path, since=None, until=None, seen_msgs=None, seen_tool_ids=Non
     sub = 'subagents' in relative.parts
     project = project_name(relative.parts[0] if relative.parts else path.parent.name)
     s = Session(path.stem, project, 'claude', sub)
-    calls = {}
+    calls, work_calls = {}, {}
+    seen_user_msgs = seen_user_msgs if seen_user_msgs is not None else set()
     fresh_calls, result_ids = set(), set()
     pending = []  # [est_tokens, label, turn_index] awaiting carry computation
     first_api_message = True
@@ -136,7 +310,7 @@ def parse_claude(path, since=None, until=None, seen_msgs=None, seen_tool_ids=Non
         pending.clear()
 
     with path.open(encoding='utf-8', errors='replace') as f:
-        for line in f:
+        for position, line in enumerate(f):
             head = line[:160]
             if '"type":"api-request' in head or '"type":"attachment"' in head:
                 continue  # huge request snapshots and hook payloads; never needed
@@ -148,13 +322,17 @@ def parse_claude(path, since=None, until=None, seen_msgs=None, seen_tool_ids=Non
                 if in_window(parse_ts(boundary.get('timestamp')), since, until):
                     close_segment()
                 continue
-            if '"assistant"' not in line and '"tool_result"' not in line:
+            if '"assistant"' not in line and '"user"' not in line:
                 continue
             try:
                 o = json.loads(line)
             except ValueError:
                 continue
+            if not isinstance(o, dict):
+                continue
             kind, msg = o.get('type'), o.get('message') or {}
+            if not isinstance(msg, dict):
+                continue
             if kind == 'assistant':
                 mid = msg.get('id') or o.get('uuid')
                 model = msg.get('model')
@@ -174,6 +352,10 @@ def parse_claude(path, since=None, until=None, seen_msgs=None, seen_tool_ids=Non
                         seen_tool_ids.add(call_id)
                         fresh_calls.add(call_id)
                         inp = b.get('input') or {}
+                        if not isinstance(inp, dict):
+                            inp = {}
+                        if in_window(ts, since, until):
+                            work_calls[call_id] = work_call(s, b.get('name', '?'), inp, position)
                         calls[call_id] = tool_label(b.get('name', '?'), inp)
                         if (in_window(ts, since, until) and b.get('name') == 'Read'
                                 and isinstance(inp.get('file_path'), str)):
@@ -185,6 +367,7 @@ def parse_claude(path, since=None, until=None, seen_msgs=None, seen_tool_ids=Non
                 if duplicate or not in_window(ts, since, until):
                     continue
                 u = msg.get('usage') or {}
+                weighted_before = s.weighted()
                 inp_t = u.get('input_tokens') or 0
                 cr = u.get('cache_read_input_tokens') or 0
                 cw = u.get('cache_creation_input_tokens') or 0
@@ -194,6 +377,7 @@ def parse_claude(path, since=None, until=None, seen_msgs=None, seen_tool_ids=Non
                 s.usage.update({'input': inp_t, 'cache_read': cr, 'cache_write_5m': cw5m,
                                 'cache_write_1h': cw1h, 'output': u.get('output_tokens') or 0})
                 s.models[model] += 1
+                s.model_units[model] += s.weighted() - weighted_before
                 if s.baseline is None and baseline_allowed:
                     s.baseline = inp_t + cr + cw
                     s.start = ts
@@ -204,17 +388,23 @@ def parse_claude(path, since=None, until=None, seen_msgs=None, seen_tool_ids=Non
                 if not in_window(parse_ts(o.get('timestamp')), since, until):
                     continue
                 content = msg.get('content')
+                uid = o.get('uuid') or msg.get('id')
+                if not uid or uid not in seen_user_msgs:
+                    slash_invocation(s, content)
+                    if uid:
+                        seen_user_msgs.add(uid)
                 for b in content if isinstance(content, list) else []:
                     if isinstance(b, dict) and b.get('type') == 'tool_result':
                         call_id = b.get('tool_use_id')
                         if not call_id or call_id not in fresh_calls or call_id in result_ids:
                             continue
                         result_ids.add(call_id)
+                        work_result(s, work_calls.get(call_id), not b.get('is_error', False))
                         t = est_tokens(b.get('content'))
                         if t:
                             pending.append([t, calls.get(call_id, '?'), s.turns])
     close_segment()
-    return s if s.turns else None
+    return s if s.turns or s.work or s.skills_used else None
 
 
 def parse_codex(path, since=None, until=None, seen_sessions=None):
@@ -222,15 +412,45 @@ def parse_codex(path, since=None, until=None, seen_sessions=None):
     seen_sessions = seen_sessions if seen_sessions is not None else set()
     s = Session(path.stem, '?', 'codex')
     last, model, limits, meta_id = None, None, None, None
+    work_calls, result_ids = {}, set()
+    last_weighted = 0
     with path.open(encoding='utf-8', errors='replace') as f:
-        for line in f:
-            if '"token_count"' not in line and '"turn_context"' not in line and '"session_meta"' not in line[:200]:
-                continue
+        for position, line in enumerate(f):
             try:
                 o = json.loads(line)
             except ValueError:
                 continue
+            if not isinstance(o, dict):
+                continue
             p = o.get('payload') or {}
+            if not isinstance(p, dict):
+                continue
+            kind = p.get('type')
+            call_id = p.get('call_id')
+            if in_window(parse_ts(o.get('timestamp')), since, until):
+                if kind in ('function_call', 'custom_tool_call', 'exec_command_begin', 'patch_apply_begin') and call_id not in work_calls:
+                    inp = p.get('arguments', p.get('input', {}))
+                    if isinstance(inp, str):
+                        try:
+                            inp = json.loads(inp)
+                        except ValueError:
+                            inp = {}
+                    if not isinstance(inp, dict):
+                        inp = {}
+                    name = p.get('name', '')
+                    if kind == 'exec_command_begin':
+                        name, inp = 'exec_command', {'command': p.get('command')}
+                    elif kind == 'patch_apply_begin':
+                        name = 'apply_patch'
+                    if call_id:
+                        work_calls[call_id] = work_call(s, name.rsplit('.', 1)[-1], inp, position)
+                elif kind in ('function_call_output', 'custom_tool_call_output', 'exec_command_end', 'patch_apply_end') and call_id not in result_ids:
+                    outcome = codex_outcome(p.get('output', p))
+                    if outcome is not None:
+                        work_result(s, work_calls.get(call_id), outcome)
+                        result_ids.add(call_id)
+                elif kind in ('user_message', 'message') and (kind == 'user_message' or p.get('role') == 'user'):
+                    slash_invocation(s, p.get('message', p.get('content')))
             if o.get('type') == 'session_meta':
                 meta_id = p.get('id') or meta_id
                 s.project = '/'.join(Path(p.get('cwd', '?')).parts[-2:])
@@ -240,6 +460,12 @@ def parse_codex(path, since=None, until=None, seen_sessions=None):
             elif p.get('type') == 'token_count' and p.get('info'):
                 last = p['info']
                 limits = p.get('rate_limits') or limits
+                total_usage = last.get('total_token_usage') or {}
+                cached = total_usage.get('cached_input_tokens') or 0
+                weighted_now = (max((total_usage.get('input_tokens') or 0) - cached, 0) +
+                                cached * WEIGHTS['cache_read'] + (total_usage.get('output_tokens') or 0) * WEIGHTS['output'])
+                s.model_units[model or 'unknown'] += max(0, weighted_now - last_weighted)
+                last_weighted = weighted_now
                 s.turns += 1
                 if model:
                     s.models[model] += 1
@@ -281,12 +507,12 @@ def collect(since=None, project=None, paths=None, until=None, skip_untouched=Tru
         dated.append((mtime, agent, path, root))
     dated.sort(key=lambda item: (item[0], str(item[2])))
 
-    seen_msgs, seen_tool_ids, seen_codex_sessions = set(), set(), set()
+    seen_msgs, seen_tool_ids, seen_codex_sessions, seen_user_msgs = set(), set(), set(), set()
     sessions = []
     for _, agent, p, root in dated:
         try:
             if agent == 'claude':
-                s = parse_claude(p, since, until, seen_msgs, seen_tool_ids, root)
+                s = parse_claude(p, since, until, seen_msgs, seen_tool_ids, root, seen_user_msgs)
             else:
                 s = parse_codex(p, since, until, seen_codex_sessions)
         except OSError:
@@ -323,7 +549,7 @@ def summarize(sessions, top=10):
     for s in claude:
         for m, n in s.models.items():
             by_model[m]['turns'] += n
-        main = s.models.most_common(1)[0][0]
+        main = s.models.most_common(1)[0][0] if s.models else 'unknown'
         by_model[main]['weighted'] += s.weighted()
         by_project[s.project] += s.weighted()
 
@@ -379,6 +605,7 @@ def summarize(sessions, top=10):
                            'cache_hit_rate': round(ct['cache_read'] / cprompt, 4) if cprompt else None,
                            'models': dict(cm.most_common(top)),
                            'latest_rate_limits': latest.baseline if latest else None}
+    report['work'], report['skills_used'] = work_summary(sessions)
     report['findings'] = findings(report)
     return report
 
@@ -386,8 +613,13 @@ def summarize(sessions, top=10):
 def findings(r):
     """Turn measurements into ranked, specific actions. Thresholds are deliberate and documented."""
     c, out = r['claude'], []
+    work = r.get('work', {})
+    if (work.get('rework_rate') or 0) > .25:
+        out.append('Work proxy: failed checks exceed 25% of known outcomes; failed checks are being paid for twice — tighten briefs / run targeted tests first.')
+    if work.get('verified_edit_share') is not None and work['verified_edit_share'] < .5:
+        out.append('Work proxy: edits often end without a passing check (verified-edit share below 50%).')
     if not c['api_turns']:
-        return ['No Claude Code usage found for this window.']
+        return out or ['No Claude Code usage found for this window.']
     share = c['weighted_share']
     hit = c['cache_hit_rate'] or 0
     base = c['starting_context']['median'] or 0
@@ -434,6 +666,7 @@ def print_report(r, since_label):
         sc = c['starting_context']
         say(f"  starting context per session: median {fmt(sc['median'] or 0)}, p90 {fmt(sc['p90'] or 0)}, max {fmt(sc['max'] or 0)}")
         say(f"  cache rebuilds: {c['cache_rebuilds']['count']} ({fmt(c['cache_rebuilds']['tokens'])} tokens)\n")
+        print_work(r['work'])
         sections = [
             ('By model (weighted units)', [f"{m:<28} {fmt(v['weighted_units']):>8}  {v['turns']} turns" for m, v in c['by_model'].items()]),
             ('By project (weighted units)', [f'{p:<40} {fmt(w):>8}' for p, w in c['by_project'].items()]),
@@ -464,11 +697,36 @@ def print_report(r, since_label):
                 reset = datetime.fromtimestamp(w['resets_at'], timezone.utc).isoformat(timespec='minutes') if w.get('resets_at') else '?'
                 say(f"  latest {hours:g}h window: {w['used_percent']:g}% used, resets {reset}")
         say('')
+    if not c['api_turns']:
+        print_work(r['work'])
     say('Findings (highest impact first)')
     for i, f in enumerate(r['findings'], 1):
         say(f'  {i}. {f}')
     say('\nWeighted units use documented cache multipliers (read 0.1x, write 1.25x/2x) and 5x output; '
         'tool sizes are ~4 chars/token estimates.')
+
+
+def print_work(w):
+    print('Work (proxy — counted from tool calls, not a quality judgement)')
+    print(f"  edits {w['edits']} · checks {w['checks']} ({w['checks_passed']} passed, {w['checks_failed']} failed) · commits {w['commits']}")
+    edited = w['verified_edit_sessions'] + w['unverified_edit_sessions']
+    print(f"  rework rate {pct(w['rework_rate'] or 0, 1) if w['rework_rate'] is not None else '—'} · "
+          f"verified-edit sessions {w['verified_edit_sessions']}/{edited} ({pct(w['verified_edit_sessions'], edited)})")
+    value = fmt(w['usage_per_passing_check']) + ' units' if w['usage_per_passing_check'] is not None else 'n/a'
+    print(f"  usage per passing check {value} (distinct commands per session: {w['distinct_passing_checks']})")
+    print('  model mix: ' + ' · '.join(f'{tier} {pct(share, 1)}' for tier, share in w['model_mix'].items() if share is not None))
+    print('  premium share: lower usually = cheaper, check quality')
+    if w['unknown_models']:
+        print('  unknown model tiers: ' + ', '.join(w['unknown_models']))
+    print('')
+
+
+WORK_COMPARE_METRICS = (
+    ('usage_per_passing_check', 'Usage per passing check'),
+    ('rework_rate', 'Rework rate'),
+    ('verified_edit_share', 'Verified-edit share'),
+    ('premium_share', 'Premium share'),
+)
 
 
 COMPARE_METRICS = (
@@ -507,7 +765,13 @@ def build_comparison(current, previous):
     for key, _ in COMPARE_METRICS:
         now, before = current_values[key], previous_values[key]
         delta[key] = round(now - before, 4) if now is not None and before is not None else None
-    return {'current': current_values, 'previous': previous_values, 'delta': delta}
+    enough = min(current['work']['checks_passed'], previous['work']['checks_passed']) >= 5
+    for key, _ in WORK_COMPARE_METRICS:
+        now = current['work'][key] if enough else None
+        before = previous['work'][key] if enough else None
+        current_values[key], previous_values[key] = now, before
+        delta[key] = now - before if now is not None and before is not None else None
+    return {'current': current_values, 'previous': previous_values, 'delta': delta, 'work_too_few_checks': not enough}
 
 
 def print_comparison(data):
@@ -515,11 +779,15 @@ def print_comparison(data):
     turns_delta = data['delta']['api_turns']
     print(f"  API turns: {fmt(data['current']['api_turns'])} current · {fmt(data['previous']['api_turns'])} previous · "
           f"delta {'+' if turns_delta >= 0 else '-'}{fmt(abs(turns_delta))}")
-    for key, label in COMPARE_METRICS:
+    metrics = COMPARE_METRICS + (WORK_COMPARE_METRICS if 'work_too_few_checks' in data else ())
+    for key, label in metrics:
+        if (key, label) in WORK_COMPARE_METRICS and data.get('work_too_few_checks'):
+            print(f'  {label}: n/a (too few checks)')
+            continue
         current, previous, delta = (data[period][key] for period in ('current', 'previous', 'delta'))
-        if key in ('cache_hit_rate', 'cache_rebuilds_per_100_turns'):
-            scale = 100 if key == 'cache_hit_rate' else 1
-            precision = 0 if key == 'cache_hit_rate' else 1
+        if key in ('cache_hit_rate', 'cache_rebuilds_per_100_turns', 'rework_rate', 'verified_edit_share', 'premium_share'):
+            scale = 1 if key == 'cache_rebuilds_per_100_turns' else 100
+            precision = 1 if key == 'cache_rebuilds_per_100_turns' else 0
             values = (f'{current * scale:.{precision}f}%' if current is not None else '—',
                       f'{previous * scale:.{precision}f}%' if previous is not None else '—',
                       f'{delta * scale:+.1f} pp' if delta is not None else '—')
@@ -530,12 +798,12 @@ def print_comparison(data):
         change = f' ({delta / previous:+.0%})' if delta is not None and previous else ''
         direction = ''
         if delta is not None:
-            if key == 'output_tokens_per_turn':
+            if key in ('output_tokens_per_turn', 'premium_share'):
                 direction = 'neutral'
             elif delta == 0:
                 direction = 'unchanged'
             else:
-                better = delta > 0 if key == 'cache_hit_rate' else delta < 0
+                better = delta > 0 if key in ('cache_hit_rate', 'verified_edit_share') else delta < 0
                 direction = 'better' if better else 'worse'
         suffix = f' · {direction}' if direction else ''
         print(f'  {label}: {values[0]} current · {values[1]} previous · delta {values[2]}{change}{suffix}')
