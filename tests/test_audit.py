@@ -306,7 +306,7 @@ class TestAudit(unittest.TestCase):
         result = subprocess.run([sys.executable, str(ROOT / 'tokenmaxxing.py'), '--version'],
                                 text=True, capture_output=True)
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(result.stdout.strip(), 'tokenmaxxing 1.5.0')
+        self.assertEqual(result.stdout.strip(), 'tokenmaxxing 2.0.0')
 
         result = subprocess.run([sys.executable, str(ROOT / 'tokenmaxxing.py'), '--help'],
                                 text=True, capture_output=True)

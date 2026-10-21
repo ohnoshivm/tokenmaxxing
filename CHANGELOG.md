@@ -2,6 +2,13 @@
 
 **Created by [Shivam Kumawat](https://github.com/ohnoshivm) (@ohnoshivm) · AgentKind Labs**
 
+## 2.0.0 — 2026-10-21
+
+- Added a tool-call work ledger to `audit`, including edits, passing checks, commits, verified-edit sessions, model tiers and skill invocations. The ledger is a proxy for activity, not a quality score.
+- Added `fix` dry runs and reversible skill archiving with manifests, `--list` and `--undo`; it never edits `settings.json` or deletes skills.
+- Added the opt-in `guard` UserPromptSubmit hook. It lets slash commands pass and blocks once when a large context is sent after cache expiry; `--print-hook` only prints a snippet.
+- Added focused fix and guard guides. All commands remain standard-library-only.
+
 ## 1.5.0 — 2026-10-21
 
 - Added offline, read-only `audit`, `doctor` and `statusline` commands for local usage measurement, fixed-overhead inspection and live cache/context awareness.
