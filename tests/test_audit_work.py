@@ -8,6 +8,7 @@ from contextlib import redirect_stdout
 
 
 ROOT = Path(__file__).resolve().parents[1]
+STAMP = "2026-10-21T12:00:00+00:00"
 SPEC = importlib.util.spec_from_file_location("tokenmaxxing_audit_work", ROOT / "scripts" / "audit.py")
 audit = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(audit)
@@ -145,6 +146,18 @@ class TestAuditWork(unittest.TestCase):
         self.assertEqual(report["skills_used"]["by_name"], {"codex-skill": 1})
         self.assertGreater(report["work"]["premium_share"], 0)
         self.assertTrue(any("Failed checks are 50%" in item for item in report["findings"]))
+
+    def test_slash_command_is_counted_without_an_assistant_turn(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            write_jsonl(root / "project" / "slash-only.jsonl", [{
+                "type": "user", "timestamp": STAMP,
+                "message": {"content": "<command-name>/manual-review</command-name>"},
+            }])
+
+            report = audit.summarize(audit.collect(paths=[root]))
+
+        self.assertEqual(report["skills_used"]["by_name"], {"manual-review": 1})
 
     def test_check_pattern_matches_first_segment_only(self):
         self.assertTrue(audit.is_check_command("echo hi && pytest -q"))

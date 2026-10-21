@@ -527,7 +527,7 @@ def parse_claude(path, since=None, until=None, seen_msgs=None, seen_tool_ids=Non
                         success = (not is_error) if isinstance(is_error, bool) else None
                         _complete_tool(s, call_id, success)
     close_segment()
-    return s if s.turns else None
+    return s if s.turns or s.skills_used or s.plugin_skills else None
 
 
 def parse_codex(path, since=None, until=None, seen_sessions=None):
@@ -729,6 +729,8 @@ def summarize(sessions, top=10):
     for s in claude:
         for m, n in s.models.items():
             by_model[m]['turns'] += n
+        if not s.models:
+            continue
         main = s.models.most_common(1)[0][0]
         by_model[main]['weighted'] += s.weighted()
         by_project[s.project] += s.weighted()
