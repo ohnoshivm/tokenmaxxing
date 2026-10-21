@@ -45,16 +45,16 @@ Run these commands from the repository checkout with `python3 tokenmaxxing.py`.
 
 | Command | What it does | Writes anything? |
 | --- | --- | --- |
-| `audit` | Measure local Claude Code and Codex usage plus the work ledger. | No; offline and read-only. |
-| `doctor` | Inspect instruction, skill, plugin, hook and MCP overhead. | No; offline and read-only. |
-| `fix` | Plan a reversible archive of unused skills; use `--undo` to restore. | Dry run by default; `--apply` moves files and writes a manifest. |
-| `guard` | Opt-in `UserPromptSubmit` hook that holds a cold-cache prompt once. | The active hook writes its own marker files; `--print-hook` only prints. |
-| `statusline` | Show context size, cache warmth and hit ratio. | No; `--install` only prints a settings snippet. |
-| `reset` | Configure and inspect reset windows; check or watch for notifications. | Setup writes a private config and checks update local state. |
-| `install` | Install the portable skill and stage eight pinned optimizer sources. | Yes; writes local files and can fetch sources unless `--no-fetch` is used. |
-| `status` | Inspect staged source revisions and the installed skill. | No. |
+| `audit` | Measure local usage and the work proxy. | No. |
+| `doctor` | Inspect always-loaded setup overhead. | No. |
+| `fix` | Plan reversible skill moves. | No by default; `--apply` moves files. |
+| `guard` | Opt-in cold-cache prompt hold. | Marker files only when active. |
+| `statusline` | Show context and cache status. | No; `--install` prints a snippet. |
+| `reset` | Configure reset windows and inspect notifications. | Setup and checks write config/state. |
+| `install` | Install the skill and stage eight pinned sources. | Yes; may fetch unless `--no-fetch` is used. |
+| `status` | Inspect staged sources and the installed skill. | No. |
 | `profiles` | List task profiles. | No. |
-| `plugin-commands NAME` | Print candidate plugin commands without running them. | No. |
+| `plugin-commands NAME` | Print candidate commands; never run them. | No. |
 
 ## Safety guarantees
 
