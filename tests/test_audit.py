@@ -224,7 +224,10 @@ class TestAudit(unittest.TestCase):
                 code = audit.run(args)
 
             self.assertEqual(code, 0)
-            self.assertEqual(json.loads(output.getvalue())['claude']['api_turns'], 1)
+            report = json.loads(output.getvalue())
+            self.assertEqual(report['claude']['api_turns'], 1)
+            self.assertIn('work', report)
+            self.assertIn('skills_used', report)
 
     def test_tool_labels_keep_path_tail_and_collapse_commands(self):
         path = '/' + 'prefix/' * 20 + 'final-file.py'
