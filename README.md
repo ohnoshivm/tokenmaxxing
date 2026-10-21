@@ -125,4 +125,4 @@ are explicit and their effects are listed above.
 
 **Created by Shivam Kumawat (@ohnoshivm) · AgentKind Labs**
 ([profile](https://github.com/ohnoshivm)). See [credits](CREDITS.md) and
-[citation](CITATION.cff).
+[citation](CITATION.cff). Licensed under the [MIT License](LICENSE).
