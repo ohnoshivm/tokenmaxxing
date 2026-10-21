@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "observed_at": "2026-10-22T08:59:30+05:30",
+  "accounts": [
+    {
+      "provider": "codex",
+      "instance_id": "REPLACE_WITH_VERIFIED_T3_OR_PROVIDER_INSTANCE_ID",
+      "windows": [
+        {"id":"session", "used_percent":100, "resets_at":"2026-10-22T09:00:00+05:30"},
+        {"id":"weekly", "used_percent":20, "resets_at":"2026-10-26T09:00:00+05:30"}
+      ]
+    }
+  ]
+}
