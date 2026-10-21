@@ -9,7 +9,7 @@
 - Added `guard`: an opt-in `UserPromptSubmit` hook that blocks a prompt once when the cache TTL has expired with a large context, then lets the re-send through within `--grace`. Silent on every error path; markers live in `<config>/tokenmaxxing-guard/`.
 - Added `policy/model-tiers.json`.
 - `settings.json` and provider configuration are still never written.
-- Tests: 110 local tests, including a 50 MB transcript timing check for the guard.
+- Tests: 115 local tests, including a 50 MB transcript timing check for the guard.
 
 ## 1.5.0 — 2026-10-21
 

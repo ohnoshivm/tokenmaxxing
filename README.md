@@ -1,133 +1,128 @@
-# TOKENMAXXING
+![TOKENMAXXING — Spend less usage. Ship more verified work.](docs/assets/banner.svg)
+
+TOKENMAXXING measures local Claude Code and Codex usage against verified work,
+then offers reversible setup cleanup and an opt-in cold-cache guard.
 
 [![CI](https://github.com/ohnoshivm/tokenmaxxing/actions/workflows/ci.yml/badge.svg)](https://github.com/ohnoshivm/tokenmaxxing/actions/workflows/ci.yml)
+[![Latest release](https://img.shields.io/github/v/release/ohnoshivm/tokenmaxxing?display_name=tag&color=3DDC84)](https://github.com/ohnoshivm/tokenmaxxing/releases/latest)
+[![Python 3.9+](https://img.shields.io/badge/Python-3.9%2B-3DDC84?labelColor=30363D)](docs/installation.md)
+[![stdlib only · offline](https://img.shields.io/badge/stdlib%20only-offline-3DDC84?labelColor=30363D)](docs/installation.md)
 
-**The Premium Model Delegation & Token-Efficiency System** — a toolkit for getting more and better AI-agent work done per unit of token usage or subscription allowance.
+## Why this exists
 
-**Created by [Shivam Kumawat](https://github.com/ohnoshivm) (@ohnoshivm) · AgentKind Labs**
+> **One machine · 30-day sample:** 140 cache rebuilds accounted for about 35M tokens.
+> Rework was 9%; 17% of edit sessions had a passing check after the final edit.
+> These local logs are a measurement sample, not a benchmark or a savings claim.
 
-**Version:** 2.0.0 · **Research date:** 21 October 2026
-**Status:** CLI toolkit with local measurement and operating guidance. Routing policies are references, not a claim that the author's applications are configured or automatically routed.
+## Quickstart
 
-> **Thesis:** The most useful multi-model system maximizes *verified outcome quality per unit of scarce resource*: subscription allowance, API spend, token consumption, execution time, and human review attention.
-
-## Install and use TOKENMAXXING — now an actual toolkit
-
-### 30-second quickstart
+Clone the repository and run the local measurements directly:
 
 ```bash
 git clone https://github.com/ohnoshivm/tokenmaxxing.git
 cd tokenmaxxing
-python3 tokenmaxxing.py audit
+python3 tokenmaxxing.py audit --since 7d
 python3 tokenmaxxing.py doctor
-python3 tokenmaxxing.py statusline --install
-./install.sh
 ```
 
-`audit` and `doctor` are offline and read-only. `statusline --install` prints a Claude Code `settings.json` snippet; it never edits the file. The installer stages eight pinned optimizer sources and installs the portable skill. No upstream optimizer hooks are activated automatically.
+The CLI requires Python 3.9+ and uses only the standard library. No install
+step is needed for these measurements.
 
-A sample from the author's machine (`audit --since 30d`, 21 October 2026; one machine, not a benchmark or a promise of savings; excerpt). The Work block counts tool calls, so it is a proxy for work done, not a quality judgement:
+## Sample audit
 
-```text
-TOKENMAXXING audit — last 30d
-Claude Code: 49 sessions, 192 subagent runs, 10923 API turns
-  fresh input 383.0k · cache read 2.9B · cache write 77.1M · output 6.5M
-  cache hit rate 97% · weighted cost units 446.5M
-  cost share: cache_write_5m 12% · cache_write_1h 16% · cache_read 65% · output 7%
-  starting context per session: median 59.8k, p90 94.7k, max 103.7k
-  cache rebuilds: 139 (35.3M tokens)
+![Rounded TOKENMAXXING audit output from one machine; the work ledger is a tool-call proxy.](docs/assets/audit.svg)
 
-Work (proxy — counted from tool calls, not a quality judgement)
-  edits 223 · checks 236 (200 passed, 36 failed) · commits 87
-  rework rate 15% · verified-edit sessions 7/22 (32%)
-  usage per passing check 2.4M units
-  model mix: premium 87% · standard 12% · economy 0% · unknown 1%
-```
-
-Doctor on the same machine estimated ~19.5k always-loaded tokens: ~4.7k of instructions, ~14.1k of skill metadata (173 skills), and ~686 of subagent descriptions. Example fixes (home path abbreviated):
-
-```text
-Fixes (highest impact first)
-  1. [HIGH] 2 coding-behavior optimizers are active: occam, whittle. Keep one at a time; profiles: balanced=ponytail, deep-reasoning=occam, full-product=whittle.
-  2. [MEDIUM] ~/.claude/CLAUDE.md is ~4.7k tokens; move rarely-needed sections into a referenced file.
-```
-
-Example statusline with a cold cache:
-
-```text
-Opus 5.5 · ctx 129k/200k ▓▓▓░░ · cache cold — next turn rewrites ~129k · hit 100% · consider /compact
-```
-
-### Command reference
-
-| Command | Purpose |
-| --- | --- |
-| `./install.sh [--dry-run] [--no-fetch]` | Install the skill and stage pinned optimizer sources. |
-| `python3 tokenmaxxing.py install [--dry-run] [--no-fetch]` | Run the installer directly from the CLI. |
-| `python3 tokenmaxxing.py status` | Inspect installed sources and current state. |
-| `python3 tokenmaxxing.py profiles` | List available task profiles. |
-| `python3 tokenmaxxing.py plugin-commands NAME` | Print native plugin commands for a candidate. |
-| `python3 tokenmaxxing.py audit [--since 30d\|7d\|24h\|all\|ISO] [--compare] [--project TEXT] [--path DIR] [--top N] [--json]` | Offline analysis of local Claude Code transcripts and Codex rollouts. |
-| `python3 tokenmaxxing.py doctor [--project-dir PATH] [--config-dir PATH] [--no-measure] [--json]` | Read-only audit of always-loaded instruction and tool overhead. |
-| `python3 tokenmaxxing.py statusline [--install]` | Show live context/cache status, or print the install snippet. |
-| `python3 tokenmaxxing.py fix [--since 30d] [--keep NAME] [--apply] [--undo [RUN_ID]] [--list] [--json]` | Archive unused skills with a manifest and undo; dry run by default. |
-| `python3 tokenmaxxing.py guard [--print-hook\|--hook] [--min-context N] [--grace SECONDS]` | Opt-in hook that warns once when the prompt cache is cold. |
-| `python3 tokenmaxxing.py reset SUBCOMMAND` | Inspect or configure reset-window notifications; see [reset guide](docs/reset-activation.md). |
-
-`audit` reports fresh input, cache reads/writes, output, cache hit rate and weighted cost (cache read 0.1×, 5-minute write 1.25×, 1-hour write 2×, output 5×). It breaks down cost by class, model and project; reports median/p90 starting context, full-prefix rebuilds, tool output entering context with estimated carry cost (`tokens × later turns × 0.1`), largest results, files reread 3+ times per session, subagent share, Codex totals/latest 5-hour and weekly rate-limit usage, and ranked findings. `audit --compare` compares equal windows per turn with compact numbers, percentage changes and better/worse labels; output per turn stays neutral. JSON retains numeric values.
-
-`doctor` inventories the CLAUDE.md chain and `@` imports, skill descriptions, enabled plugin skills/agents/commands/hooks, subagent descriptions, MCP server names and transports, and SessionStart/UserPromptSubmit hooks. It detects optimizer stacking against the one-optimizer rule in `policy/optimizer-registry.json` and compares findings with measured starting context. It never prints MCP secrets.
-
-`statusline` shows context size against the model window, cache warm countdowns (5m/1h TTL), hit ratio and `/compact` hints. See [statusline setup](docs/statusline.md).
-
-`fix` turns those findings into actions, and applies only the safe one: user skills with zero invocations in the window move into `<config>/tokenmaxxing-archive/<run>/skills`, with a manifest written before the first move. Every other finding (duplicate copies, stacked optimizers, oversized instruction files) is a suggestion with the exact command or section to change. Dry run by default; `--undo` restores; nothing is ever deleted. See [fix guide](docs/fix.md).
-
-`guard` is an opt-in `UserPromptSubmit` hook. When a session idles past its prompt-cache TTL with a large context, it blocks the prompt once with a short message and a marker keyed by session id; a re-send inside `--grace` passes, so you choose between rebuilding, `/compact`, or `/clear`. Errors exit 0 silently, and it never adds tokens to model context. See [guard setup](docs/guard.md).
+Rounded output from one machine's local 30-day logs. The Work block is a
+tool-call proxy, not a quality score; this sample is not a benchmark.
 
 ## Measure → Fix → Guard → Prove
 
-1. **Measure** — `audit` for token, cache and work baselines; `doctor` for what loads before the first prompt.
-2. **Fix** — `fix` to archive unused skills reversibly, then work through its manual suggestions.
-3. **Guard** — `guard` so idling past the cache TTL stops costing a silent full-prefix rebuild.
-4. **Prove** — `audit --compare` on equal windows, per turn, plus rework rate and verified-edit share.
+Run these commands from the repository checkout with `python3 tokenmaxxing.py`.
 
-Previously, the project recommended measuring end-to-end usage without shipping a measurement tool. The local audit closes that gap; results describe the machine's available local logs and usage data.
+![Measure with audit, review reversible fixes, guard against a cold cache, and prove change with audit comparison.](docs/assets/loop.svg)
 
-## Two core pillars of TOKENMAXXING
+## Commands
 
-| Pillar | What it does | Guide |
+| Command | What it does | Writes? |
 | --- | --- | --- |
-| **Intelligent delegation** | Match task risk and quality needs to a capable model, bounded handoff and verification. | [Routing policy](policy/routing-policy.yaml) · [Delegation research](research/delegation-paper-2026.md) |
-| **Token efficiency** | Reduce wasted context, cache rebuilds, redundant tools, oversized outputs and agent loops. | [Token-efficiency policy](policy/token-efficiency.md) · [Claude Code research](research/claude-code-token-maxxing-2026.md) |
+| `audit` | Measure local usage and the work proxy. | No. |
+| `doctor` | Inspect always-loaded setup overhead. | No. |
+| `fix` | Plan reversible skill moves. | No by default; `--apply` moves files. |
+| `guard` | Opt-in cold-cache prompt hold. | Marker files only when active. |
+| `statusline` | Show context and cache status. | No; `--install` prints a snippet. |
+| `reset` | Configure reset windows and inspect notifications. | Setup writes config; live checks write state. |
+| `install` | Install the skill and stage eight pinned sources. | Yes; may fetch unless `--no-fetch` is used. |
+| `status` | Inspect staged sources and the installed skill. | No. |
+| `profiles` | List task profiles. | No. |
+| `plugin-commands NAME` | Print candidate commands; never run them. | No. |
 
-## Third primary pillar — Provider Reset Activation Engine
+## Safety guarantees
 
-Track provider reset windows and optionally receive notifications. Sending messages is off by default; see [setup and safety](docs/reset-activation.md) and [reset policy](policy/reset-activation.md).
+The measurement path is offline and read-only by default. Commands that write
+are explicit and their effects are listed above.
 
-## Optimizer candidates
+- `audit` and `doctor` read local data. Nothing is uploaded; audit reports
+  exclude transcript text, and doctor never prints MCP secrets.
+- `fix` defaults to a dry run. With `--apply`, it only moves skill files,
+  writes a manifest before moving, and supports `--undo`; it never deletes.
+- TOKENMAXXING never edits `settings.json`, authentication files or provider
+  configuration.
+- `statusline --install` and `guard --print-hook` print snippets for you to
+  review and apply yourself.
+- Pinned optimizer sources are not enabled automatically. The installer does
+  not install their dependencies or execute their code.
+- Reset notifications are inactive until configured. Provider dispatch
+  requires an explicit opt-in and a verified account-specific command.
 
-These are third-party candidates, not endorsed or automatically activated. Review source, attribution and compatibility before a trial:
+## Operating pillars
 
-[Ponytail](https://github.com/DietrichGebert/ponytail) · [Occam](https://github.com/quisbaum-prog/occam) · [Whittle](https://github.com/Obed0101/whittle) · [Chisle](https://github.com/JayPokale/Chisle) · [Master of Tokens](https://github.com/devrudals/master-of) · [Claude Token Saver](https://github.com/AllenSwift/claude-token-saver) · [Simple Man](https://github.com/Maksim-Burtsev/simple-man) · [Simpler Token Saver](https://github.com/tim-hub/cc-simpler-token-saver) · [Credits](CREDITS.md)
+- **Delegation:** task-fit guidance, handoffs and verification live in the
+  [routing policy](policy/routing-policy.yaml) and
+  [delegation research](research/delegation-paper-2026.md). The policy is
+  reference material; it does not configure automatic routing.
+- **Usage efficiency:** measure cache, setup overhead and work, then compare
+  equal windows using the [token-efficiency policy](policy/token-efficiency.md)
+  and [measurement notes](docs/measurement.md).
 
-**One-optimizer rule:** activate at most one coding-behavior optimizer at a time. “All-in-one” is one selection interface, not permission to stack overlapping rules or hooks.
+## Documentation
 
-**Safety guarantees:** audit and doctor are local, offline and read-only; nothing is uploaded. Audit does not include transcript content in its report. The toolkit does not change authentication, provider routing, MCP servers, hooks or settings. `statusline --install` and `guard --print-hook` only print snippets; the guard writes only its own marker files. `fix` never deletes: it moves skill directories into a dated archive with a manifest and an undo. Reset notifications are inactive by default.
+### Start and measure
 
-## Read the research
+- [Installation and verification](docs/installation.md) — install options,
+  offline measurement and scope.
+- [Extended quickstart](docs/quick-start.md) — safe manual setup and
+  verification workflow.
+- [Mission and measurement notes](docs/measurement.md) — metric definitions,
+  limits and research map.
 
-- [Delegation paper and original long-form README content](research/delegation-paper-2026.md)
-- [Claude Code token-maxxing research](research/claude-code-token-maxxing-2026.md)
+### Commands and setup
+
+- [Reversible cleanup](docs/fix.md) — dry run, archive manifest and undo.
+- [Cold-cache guard](docs/guard.md) — hook behavior, setup and safety.
+- [Status line](docs/statusline.md) — context and cache display, install snippet and limits.
+- [Reset windows](docs/reset-activation.md) — inactive setup, notifications and
+  explicit dispatch rules.
+- [Optimizer profiles](docs/optimizer-profiles.md) — controlled comparison and
+  candidate evidence.
+- [T3 Chat guide](docs/t3-chat.md) — portable policy without assumed native
+  automation.
+
+### Policies and research
+
+- [Delegation routing policy](policy/routing-policy.yaml)
+- [Token-efficiency policy](policy/token-efficiency.md)
+- [Delegation research](research/delegation-paper-2026.md)
+- [Claude Code token-efficiency research](research/claude-code-token-maxxing-2026.md)
 - [Optimizer behavior comparison](research/optimizer-behavior-comparison-2026.md)
-- [Policies](policy/)
-- [Profiles](profiles/)
-- [Templates](templates/)
-- [Statusline setup](docs/statusline.md)
-- [Fix guide](docs/fix.md)
-- [Guard setup](docs/guard.md)
-- [Installation guide](docs/installation.md)
-- [Quick start](QUICK_START.md)
+
+### Project records
+
+- [Changelog](CHANGELOG.md)
+- [Third-party credits](CREDITS.md)
+- [Citation metadata](CITATION.cff)
 
 ## Attribution
 
-Research and implementation by **[Shivam Kumawat](https://github.com/ohnoshivm)** (@ohnoshivm), AgentKind Labs. See [CREDITS.md](CREDITS.md) and [CITATION.cff](CITATION.cff).
+**Created by Shivam Kumawat (@ohnoshivm) · AgentKind Labs**
+([profile](https://github.com/ohnoshivm)). See [credits](CREDITS.md) and
+[citation](CITATION.cff). Licensed under the [MIT License](LICENSE).
