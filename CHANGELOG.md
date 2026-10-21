@@ -2,6 +2,15 @@
 
 **Created by [Shivam Kumawat](https://github.com/ohnoshivm) (@ohnoshivm) · AgentKind Labs**
 
+## 2.0.0 — 2026-10-21
+
+- Added the **work ledger** to `audit`: edits, checks (passed/failed), commits, rework rate, verified-edit sessions, usage per passing check and premium/standard/economy model mix, counted from tool calls as a proxy. New `work` and `skills_used` JSON keys; `audit --compare` gained four rows. Skill usage now includes slash commands, so `fix` will not archive skills invoked by hand.
+- Added `fix`: archives user skills with zero invocations in the window into `<config>/tokenmaxxing-archive/<run>/skills`, dry run by default, manifest written before the first move, `--undo [RUN_ID]`, `--list`, `--keep`. Duplicate copies, stacked optimizers and oversized instruction files are suggestions only, and nothing is ever deleted.
+- Added `guard`: an opt-in `UserPromptSubmit` hook that blocks a prompt once when the cache TTL has expired with a large context, then lets the re-send through within `--grace`. Silent on every error path; markers live in `<config>/tokenmaxxing-guard/`.
+- Added `policy/model-tiers.json`.
+- `settings.json` and provider configuration are still never written.
+- Tests: 110 local tests, including a 50 MB transcript timing check for the guard.
+
 ## 1.5.0 — 2026-10-21
 
 - Added offline, read-only `audit`, `doctor` and `statusline` commands for local usage measurement, fixed-overhead inspection and live cache/context awareness.
