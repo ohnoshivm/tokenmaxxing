@@ -234,6 +234,7 @@ class FixTest(unittest.TestCase):
         self.assertEqual([item['kind'] for item in payload['actions']], ['skill'])
         self.assertNotIn('dir', payload['actions'][0])
         self.assertGreater(payload['estimated_tokens_per_session'], 0)
+        self.assertIsNone(payload['applied'])
 
 
 if __name__ == '__main__':

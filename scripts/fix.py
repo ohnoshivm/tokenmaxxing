@@ -371,13 +371,12 @@ def run(args):
         run_id, manifest_path, manifest = apply_plan(plan, version)
         applied = {'run_id': run_id, 'manifest_path': str(manifest_path), 'manifest': manifest}
     if getattr(args, 'json', False):
-        payload = {'dry_run': applied is None, **plan,
+        payload = {'dry_run': not apply_requested, **plan,
                    'actions': [{key: value for key, value in item.items() if key != 'dir'}
                                for item in plan['actions']],
                    'estimated_tokens_per_session': sum(item['est_tokens'] for item in plan['actions']
-                                                      if item['auto'])}
-        if applied:
-            payload['applied'] = applied
+                                                      if item['auto']),
+                   'applied': applied}
         print(json.dumps(payload, indent=2))
     else:
         print(_human(plan, applied, apply_requested=apply_requested))
