@@ -36,6 +36,7 @@ Symlinked skills move as links; the target is never touched.
 ## Safety and undo
 
 - Dry run is the default. `--apply` executes only actions marked `auto`.
+- Undo restores the skills tree byte for byte. The run's `manifest.json` stays in the archive as the record of what happened.
 - `manifest.json` is written **before** the first move and updated after each one, so a crash still leaves an undoable record.
 - `--undo` moves files back and reports conflicts (for example, a new directory reusing the old path) instead of overwriting them; it then prints what it refused and leaves the run open. Running the same `--undo` again after you resolve the path retries.
 - A second `--undo` on a finished run reports `already undone` and changes nothing.

@@ -186,6 +186,19 @@ class FixTest(unittest.TestCase):
         manifests = list((self.config / fix.ARCHIVE_DIR).glob('*/manifest.json'))
         self.assertNotIn('undone_at', json.loads(manifests[0].read_text()))
 
+    def test_apply_then_undo_restores_an_identical_skills_tree(self):
+        first = make_skill(self.config, 'unused', tokens_text='keep me')
+        (first / 'reference.md').write_text('extra file\n', encoding='utf-8')
+        make_skill(self.config, 'used')
+        before = snapshot(self.config / 'skills')
+        with environment(self.tmp, self.sessions(used=('used',))):
+            cli(args_for(self.config, self.project, apply=True))
+            self.assertNotEqual(snapshot(self.config / 'skills'), before)
+            cli(args_for(self.config, self.project, undo=''))
+        self.assertEqual(snapshot(self.config / 'skills'), before)
+        # The run record stays behind on purpose, so the archive is auditable.
+        self.assertEqual(len(list((self.config / fix.ARCHIVE_DIR).glob('*/manifest.json'))), 1)
+
     def test_undo_without_runs_reports_an_error(self):
         with environment(self.tmp, self.sessions()):
             code, output = cli(args_for(self.config, self.project, undo=''))
